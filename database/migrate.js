@@ -1,15 +1,20 @@
 const { Pool } = require('pg');
 const fs = require('fs');
+const path = require('path');
+const dns = require('dns');
+
+// Force IPv4 to avoid ENETUNREACH on IPv6
+dns.setDefaultResultOrder('ipv4first');
 
 const pool = new Pool({
-  connectionString: 'postgresql://postgres:cMERUQHJLGYnaT5f@db.zkqtusrhebcuwiwvamxa.supabase.co:5432/postgres',
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:cMERUQHJLGYnaT5f@db.zkqtusrhebcuwiwvamxa.supabase.co:5432/postgres',
   ssl: { rejectUnauthorized: false },
 });
 
 async function run() {
   const client = await pool.connect();
   try {
-    const sql = fs.readFileSync('c:/Users/rajhr/OneDrive/Documents/Desktop/Arr/database/schema.sql', 'utf8');
+    const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
     
     // Split by semicolons but keep compound statements together
     const statements = sql

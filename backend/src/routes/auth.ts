@@ -6,79 +6,89 @@ import { query, transaction } from '../db';
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
   // ── REGISTER ──────────────────────────────────────────────
   fastify.post('/register', async (req: FastifyRequest, reply: FastifyReply) => {
-    const { mobile_number, email, full_name, date_of_birth, password, language, city } = req.body as any;
+    try {
+      const { mobile_number, email, full_name, date_of_birth, password, language, city } = req.body as any;
 
-    // Check if registration is open
-    const settings = await query('SELECT registration_open FROM platform_settings LIMIT 1');
-    if (!settings.rows[0]?.registration_open) {
-      return reply.status(403).send({
-        error: language === 'hi'
-          ? 'रजिस्ट्रेशन अभी बंद है। बाद में प्रयास करें।'
-          : 'Registration is currently closed. Please try again later.',
-      });
+      // Check if registration is open
+      const settings = await query('SELECT registration_open FROM platform_settings LIMIT 1');
+      if (!settings.rows[0]?.registration_open) {
+        return reply.status(403).send({
+          error: language === 'hi'
+            ? 'रजिस्ट्रेशन अभी बंद है। बाद में प्रयास करें।'
+            : 'Registration is currently closed. Please try again later.',
+        });
+      }
+
+      // Validate inputs
+      if (!mobile_number || !full_name || !date_of_birth || !password || !city) {
+        return reply.status(400).send({ error: 'All fields including city are required' });
+      }
+
+      // Check mobile uniqueness
+      const existing = await query('SELECT id FROM users WHERE mobile_number = $1', [mobile_number]);
+      if (existing.rows.length > 0) {
+        return reply.status(409).send({ error: 'Mobile number already registered' });
+      }
+
+      // Hash password
+      const password_hash = await bcrypt.hash(password, 12);
+
+      // Insert user
+      const result = await query(
+        `INSERT INTO users (mobile_number, email, full_name, date_of_birth, password_hash, language, city)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, full_name, mobile_number, role, language, city`,
+        [mobile_number, email || null, full_name, date_of_birth, password_hash, language || 'en', city]
+      );
+
+      const user = result.rows[0];
+      const token = fastify.jwt.sign({ id: user.id, role: user.role }, { expiresIn: '7d' });
+
+      return reply.status(201).send({ token, user });
+    } catch (err: any) {
+      console.error('Register error:', err);
+      return reply.status(500).send({ error: `Registration failed: ${err.message || 'Internal server error'}` });
     }
-
-    // Validate inputs
-    if (!mobile_number || !full_name || !date_of_birth || !password || !city) {
-      return reply.status(400).send({ error: 'All fields including city are required' });
-    }
-
-    // Check mobile uniqueness
-    const existing = await query('SELECT id FROM users WHERE mobile_number = $1', [mobile_number]);
-    if (existing.rows.length > 0) {
-      return reply.status(409).send({ error: 'Mobile number already registered' });
-    }
-
-    // Hash password
-    const password_hash = await bcrypt.hash(password, 12);
-
-    // Insert user
-    const result = await query(
-      `INSERT INTO users (mobile_number, email, full_name, date_of_birth, password_hash, language, city)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, full_name, mobile_number, role, language, city`,
-      [mobile_number, email || null, full_name, date_of_birth, password_hash, language || 'en', city]
-    );
-
-    const user = result.rows[0];
-    const token = fastify.jwt.sign({ id: user.id, role: user.role }, { expiresIn: '7d' });
-
-    return reply.status(201).send({ token, user });
   });
 
   // ── LOGIN ──────────────────────────────────────────────────
   fastify.post('/login', async (req: FastifyRequest, reply: FastifyReply) => {
-    const { mobile_number, password } = req.body as any;
+    try {
+      const { mobile_number, password } = req.body as any;
 
-    const result = await query(
-      'SELECT id, full_name, password_hash, role, status, language, wallet_balance FROM users WHERE mobile_number = $1',
-      [mobile_number]
-    );
+      const result = await query(
+        'SELECT id, full_name, password_hash, role, status, language, wallet_balance FROM users WHERE mobile_number = $1',
+        [mobile_number]
+      );
 
-    if (result.rows.length === 0) {
-      return reply.status(401).send({ error: 'Invalid credentials' });
+      if (result.rows.length === 0) {
+        return reply.status(401).send({ error: 'Invalid credentials' });
+      }
+
+      const user = result.rows[0];
+
+      if (user.status === 'banned') {
+        return reply.status(403).send({ error: 'Account banned. Contact support.' });
+      }
+      if (user.status === 'suspended') {
+        return reply.status(403).send({ error: 'Account temporarily suspended.' });
+      }
+
+      const valid = await bcrypt.compare(password, user.password_hash);
+      if (!valid) {
+        return reply.status(401).send({ error: 'Invalid credentials' });
+      }
+
+      // Update last login
+      await query('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
+
+      const token = fastify.jwt.sign({ id: user.id, role: user.role }, { expiresIn: '7d' });
+
+      const { password_hash, ...safeUser } = user;
+      return reply.send({ token, user: safeUser });
+    } catch (err: any) {
+      console.error('Login error:', err);
+      return reply.status(500).send({ error: `Login failed: ${err.message || 'Internal server error'}` });
     }
-
-    const user = result.rows[0];
-
-    if (user.status === 'banned') {
-      return reply.status(403).send({ error: 'Account banned. Contact support.' });
-    }
-    if (user.status === 'suspended') {
-      return reply.status(403).send({ error: 'Account temporarily suspended.' });
-    }
-
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      return reply.status(401).send({ error: 'Invalid credentials' });
-    }
-
-    // Update last login
-    await query('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
-
-    const token = fastify.jwt.sign({ id: user.id, role: user.role }, { expiresIn: '7d' });
-
-    const { password_hash, ...safeUser } = user;
-    return reply.send({ token, user: safeUser });
   });
 
   // ── FORGOT PASSWORD (DOB verification) ─────────────────────
