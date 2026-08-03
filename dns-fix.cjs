@@ -8,22 +8,6 @@
 const dns = require('dns');
 
 // Method 1: Set default result order
-if (dns.setDefaultResultOrder) {
-  dns.setDefaultResultOrder('ipv4first');
-}
-
-// Method 2: Override dns.lookup to force family=4 (IPv4 only)
-const origLookup = dns.lookup;
-dns.lookup = function (hostname, options, callback) {
-  if (typeof options === 'function') {
-    callback = options;
-    options = { family: 4 };
-  } else if (typeof options === 'number') {
-    options = { family: 4 };
-  } else {
-    options = Object.assign({}, options, { family: 4 });
-  }
-  return origLookup.call(this, hostname, options, callback);
-};
+// DNS overrides removed. Use Connection Pooler for Supabase to get IPv4.
 
 console.log('✅ DNS forced to IPv4');

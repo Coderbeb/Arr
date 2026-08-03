@@ -3,31 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import dns from 'dns';
 
-// Force IPv4 DNS resolution — belt-and-suspenders (also done in dns-fix.cjs preload)
-if (dns.setDefaultResultOrder) {
-  dns.setDefaultResultOrder('ipv4first');
-}
-// Override dns.lookup to force family=4 if not already patched by preload
-if (!(dns.lookup as any).__ipv4Patched) {
-  const origLookup = dns.lookup;
-  const patchedLookup: any = function (
-    hostname: string,
-    options: any,
-    callback: any
-  ) {
-    if (typeof options === 'function') {
-      callback = options;
-      options = { family: 4 };
-    } else if (typeof options === 'number') {
-      options = { family: 4 };
-    } else {
-      options = Object.assign({}, options, { family: 4 });
-    }
-    return origLookup.call(dns, hostname, options, callback);
-  };
-  patchedLookup.__ipv4Patched = true;
-  (dns as any).lookup = patchedLookup;
-}
+// DNS overrides removed. Use Connection Pooler for Supabase to get IPv4.
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config();
