@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { useSocket } from '@/hooks/useSocket';
@@ -30,7 +30,7 @@ function playNotificationSound() {
   }
 }
 
-export default function TradeModule() {
+function TradeModuleInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialMode = searchParams.get('mode') || 'buy';
@@ -1334,5 +1334,17 @@ export default function TradeModule() {
       )}
     </AnimatePresence>
     </div>
+  );
+}
+
+export default function TradeModule() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+        <div className="spinner" style={{ width: 48, height: 48, borderColor: 'var(--gold) transparent var(--gold) transparent' }} />
+      </div>
+    }>
+      <TradeModuleInner />
+    </Suspense>
   );
 }

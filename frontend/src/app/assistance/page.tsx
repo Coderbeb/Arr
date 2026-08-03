@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import AppLayout from '@/components/AppLayout';
@@ -11,7 +11,7 @@ import TradeModule from '@/components/TradeModule';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '/api';
 
-export default function AssistanceDashboard() {
+function AssistanceDashboardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useLanguage();
@@ -508,5 +508,17 @@ export default function AssistanceDashboard() {
         )}
       </div>
     </AppLayout>
+  );
+}
+
+export default function AssistanceDashboard() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div className="spinner" style={{ width: 48, height: 48, borderColor: 'var(--gold) transparent var(--gold) transparent' }} />
+      </div>
+    }>
+      <AssistanceDashboardInner />
+    </Suspense>
   );
 }

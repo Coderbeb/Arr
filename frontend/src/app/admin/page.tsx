@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import AppLayout from '@/components/AppLayout';
@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '/api';
 
-export default function AdminDashboard() {
+function AdminDashboardInner() {
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
@@ -672,5 +672,17 @@ export default function AdminDashboard() {
 
       </div>
     </AppLayout>
+  );
+}
+
+export default function AdminDashboard() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div className="spinner" style={{ width: 48, height: 48, borderColor: 'var(--gold) transparent var(--gold) transparent' }} />
+      </div>
+    }>
+      <AdminDashboardInner />
+    </Suspense>
   );
 }

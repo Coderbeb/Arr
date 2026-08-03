@@ -1,6 +1,6 @@
 'use client';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Home, ArrowRightLeft, Wallet, User, LayoutDashboard, Settings, Users, IndianRupee, ShieldAlert, BadgeAlert, Menu, Bell, LogOut } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -37,7 +37,7 @@ const ASSISTANCE_NAV: NavItem[] = [
   { key: 'profile',  icon: <User size={20} />, en: '👤 Profile', hi: '👤 प्रोफ़ाइल', href: '/profile' },
 ];
 
-export default function AppLayout({ children, role = 'user', title }: { children: React.ReactNode, role?: 'user' | 'admin' | 'assistance', title?: string }) {
+function AppLayoutInner({ children, role = 'user', title }: { children: React.ReactNode, role?: 'user' | 'admin' | 'assistance', title?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const { lang, t } = useLanguage();
@@ -148,5 +148,17 @@ export default function AppLayout({ children, role = 'user', title }: { children
         </motion.div>
       </main>
     </div>
+  );
+}
+
+export default function AppLayout(props: { children: React.ReactNode, role?: 'user' | 'admin' | 'assistance', title?: string }) {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div className="spinner" style={{ width: 48, height: 48, borderColor: 'var(--gold) transparent var(--gold) transparent' }} />
+      </div>
+    }>
+      <AppLayoutInner {...props} />
+    </Suspense>
   );
 }
