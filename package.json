@@ -6,9 +6,9 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "tsx watch --ignore './frontend/.next/**' server.ts",
+    "dev": "tsx watch -r ./dns-fix.cjs --ignore './frontend/.next/**' server.ts",
     "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
-    "start": "NODE_ENV=production tsx server.ts",
+    "start": "NODE_ENV=production tsx -r ./dns-fix.cjs server.ts",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
   },
   "dependencies": {
