@@ -84,5 +84,3 @@
     @include('components.live-orders')
 </div>
 @endsection
-
-@endsection
