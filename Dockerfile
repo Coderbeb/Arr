@@ -37,7 +37,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY . .
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_MEMORY_LIMIT=-1
+RUN cp .env.example .env && composer install --no-dev --optimize-autoloader
 
 # Install Node dependencies and build Vite assets
 RUN npm install

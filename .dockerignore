@@ -3,7 +3,6 @@
 node_modules
 vendor
 .env
-.env.example
 npm-debug.log
 yarn-error.log
 storage/logs/*
