@@ -1,20 +1,22 @@
 @extends('layouts.app')
 
-@section('title', 'Trade Room — Arr Wallet')
+@section('title', 'Trade Room')
 
 @section('content')
-<div class="fade-in" x-data="{
+<div class="animate-fade-in-up" x-data="{
     tradeAmounts: [],
     selectedAmountId: '',
     activeTab: 'buy',
     upiId: '{{ Auth::user()->upi_id }}',
     upiApp: '{{ Auth::user()->upi_app ?? 'gpay' }}',
     loading: false,
+    initialLoad: true,
     message: '',
     error: '',
 
     async init() {
         await this.loadAmounts();
+        this.initialLoad = false;
     },
 
     async loadAmounts() {
@@ -41,13 +43,13 @@
             const data = await res.json();
             if (!res.ok) this.error = data.error || 'Failed to post order';
             else {
-                this.message = 'Sell order created successfully! You can track it in your Dashboard.';
-                // Optional: window.location.href = '/dashboard';
+                this.message = 'Sell order created! Track it in Dashboard.';
             }
         } catch (e) {
             this.error = 'Network Error.';
         } finally {
             this.loading = false;
+            setTimeout(() => this.message = this.error = '', 4000);
         }
     },
 
@@ -66,92 +68,122 @@
             if (!res.ok) {
                 this.error = data.error || 'Failed to join queue.';
             } else {
-                this.message = data.message + ' Track your position in the Dashboard.';
-                // Optional: window.location.href = '/dashboard';
+                this.message = data.message + ' Track position in Dashboard.';
             }
         } catch (e) {
             this.error = 'Network Error.';
         } finally {
             this.loading = false;
+            setTimeout(() => this.message = this.error = '', 4000);
         }
     }
 }">
-    <h1>⚡ Real-Time P2P Trade Room</h1>
-    <p style="margin-bottom: 2rem;">Fast matching engine with automated escrow locking. Place your buy or sell orders below.</p>
+    <div class="mb-6 md:mb-8 text-center md:text-left">
+        <h1 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center justify-center md:justify-start gap-2">
+            <span>⚡</span> Trade Room
+        </h1>
+        <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-1">Fast P2P matching with escrow locking.</p>
+    </div>
 
     <!-- Alerts -->
     <template x-if="message">
-        <div class="toast toast-success" style="position: static; transform: none; margin-bottom: 1.5rem; width: 100%;" x-text="message"></div>
+        <div class="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 p-3 rounded-lg mb-4 text-green-700 dark:text-green-400 text-sm font-medium" x-text="message"></div>
     </template>
     <template x-if="error">
-        <div class="toast toast-error" style="position: static; transform: none; margin-bottom: 1.5rem; width: 100%;" x-text="error"></div>
+        <div class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-3 rounded-lg mb-4 text-red-700 dark:text-red-400 text-sm font-medium" x-text="error"></div>
     </template>
 
-    <div class="card">
-        <div class="tab-container">
-            <button class="tab-btn" :class="{ 'tab-active': activeTab === 'buy' }" @click="activeTab = 'buy'; error = ''; message = '';">Buy Coins</button>
-            <button class="tab-btn" :class="{ 'tab-active': activeTab === 'sell' }" @click="activeTab = 'sell'; error = ''; message = '';">Sell Coins</button>
-        </div>
-
-        <div class="input-group">
-            <label class="input-label">Select Amount</label>
-            <div class="amount-pill-grid">
-                <template x-for="amt in tradeAmounts" :key="amt.id">
-                    <div class="amount-pill" 
-                         :class="{ 'amount-pill-active': selectedAmountId === amt.id }"
-                         @click="selectedAmountId = amt.id"
-                         x-text="'₹' + amt.amount"></div>
-                </template>
-            </div>
-        </div>
-
-        <template x-if="activeTab === 'sell'">
-            <div>
-                <div class="input-group">
-                    <label class="input-label">Your UPI ID</label>
-                    <input type="text" class="input" x-model="upiId" placeholder="name@upi" required>
+    <div class="bg-white/80 dark:bg-deep-800/80 backdrop-blur-xl border border-gray-200 dark:border-white/10 p-4 md:p-8 rounded-2xl max-w-2xl mx-auto shadow-sm">
+        <!-- Skeleton Loader for Amounts -->
+        <template x-if="initialLoad">
+            <div class="animate-pulse flex flex-col gap-4">
+                <div class="flex gap-2 p-1 bg-gray-100 dark:bg-white/5 rounded-xl">
+                    <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg flex-1"></div>
+                    <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg flex-1"></div>
                 </div>
-
-                <div class="input-group">
-                    <label class="input-label">Preferred UPI App</label>
-                    <select class="input" x-model="upiApp">
-                        <option value="gpay">Google Pay (GPay)</option>
-                        <option value="phonepe">PhonePe</option>
-                        <option value="paytm">Paytm</option>
-                        <option value="bhim">BHIM UPI</option>
-                    </select>
+                <div class="space-y-2">
+                    <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                    <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                        <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                        <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                    </div>
                 </div>
-
-                <button class="btn btn-primary btn-lg btn-full" style="margin-top: 1rem;" @click="handleSellOrder" :disabled="loading">
-                    <span x-show="!loading">Sell Coins (Escrow)</span>
-                    <span x-show="loading" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                        <svg class="spinner-svg" viewBox="0 0 50 50" style="width: 20px; height: 20px;"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
-                        Processing...
-                    </span>
-                </button>
             </div>
         </template>
 
-        <template x-if="activeTab === 'buy'">
-            <div>
-                <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">
-                    You will be matched with a verified seller and asked to pay via UPI.
-                </p>
-                <button class="btn btn-success btn-lg btn-full" @click="handleJoinQueue" :disabled="loading">
-                    <span x-show="!loading">Join Buyer Queue</span>
-                    <span x-show="loading" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                        <svg class="spinner-svg" viewBox="0 0 50 50" style="width: 20px; height: 20px;"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
-                        Processing...
-                    </span>
+        <div x-show="!initialLoad" style="display: none;">
+            <!-- Segmented Control (iOS Style Tabs) -->
+            <div class="flex p-1 mb-6 bg-gray-100 dark:bg-black/40 rounded-[14px] border border-gray-200/50 dark:border-white/5 relative">
+                <button class="flex-1 py-2 text-sm font-bold text-center rounded-[10px] transition-all z-10"
+                        :class="activeTab === 'buy' ? 'bg-white dark:bg-deep-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'"
+                        @click="activeTab = 'buy'; error = ''; message = '';">
+                    Buy
+                </button>
+                <button class="flex-1 py-2 text-sm font-bold text-center rounded-[10px] transition-all z-10"
+                        :class="activeTab === 'sell' ? 'bg-white dark:bg-deep-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'"
+                        @click="activeTab = 'sell'; error = ''; message = '';">
+                    Sell
                 </button>
             </div>
-        </template>
-    </div>
-    
-    <div style="margin-top: 2rem; text-align: center;">
-        <a href="{{ route('dashboard') }}" class="btn btn-secondary">
-            Go to Dashboard to manage Live Orders
-        </a>
+
+            <!-- Amount Selection -->
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Select Amount</label>
+                <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    <template x-for="amt in tradeAmounts" :key="amt.id">
+                        <div class="py-2.5 px-1 text-center rounded-xl font-bold cursor-pointer transition-all border-2 text-sm md:text-base"
+                             :class="selectedAmountId === amt.id ? 'bg-gold-400/10 border-gold-400 text-gold-600 dark:text-gold-400' : 'bg-gray-50 dark:bg-white/5 border-transparent text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/20'"
+                             @click="selectedAmountId = amt.id"
+                             x-text="'₹' + amt.amount"></div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Sell Form -->
+            <template x-if="activeTab === 'sell'">
+                <div class="animate-fade-in">
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Your UPI ID</label>
+                        <input type="text" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl font-mono text-sm focus:ring-2 focus:ring-gold-400 outline-none transition-all" x-model="upiId" placeholder="name@upi" required>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Preferred UPI App</label>
+                        <select class="w-full px-4 py-3 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-gold-400 outline-none transition-all appearance-none" x-model="upiApp">
+                            <option value="gpay">Google Pay</option>
+                            <option value="phonepe">PhonePe</option>
+                            <option value="paytm">Paytm</option>
+                            <option value="bhim">BHIM UPI</option>
+                        </select>
+                    </div>
+
+                    <button class="w-full py-3.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-transform active:scale-95 flex justify-center items-center gap-2 text-sm md:text-base" @click="handleSellOrder" :disabled="loading">
+                        <span x-show="!loading">Sell Coins</span>
+                        <span x-show="loading" class="flex items-center gap-2">
+                            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            Processing...
+                        </span>
+                    </button>
+                </div>
+            </template>
+
+            <!-- Buy Form -->
+            <template x-if="activeTab === 'buy'">
+                <div class="animate-fade-in text-center">
+                    <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-6 bg-gray-50 dark:bg-white/5 p-3 rounded-xl border border-gray-200 dark:border-white/10">
+                        You will be matched with a verified seller.
+                    </p>
+                    <button class="w-full py-3.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-500/30 transition-transform active:scale-95 flex justify-center items-center gap-2 text-sm md:text-base" @click="handleJoinQueue" :disabled="loading">
+                        <span x-show="!loading">Find Seller</span>
+                        <span x-show="loading" class="flex items-center gap-2">
+                            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            Processing...
+                        </span>
+                    </button>
+                </div>
+            </template>
+        </div>
     </div>
 </div>
 @endsection

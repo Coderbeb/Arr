@@ -1,157 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Panel — Arr Wallet')</title>
     
-    <!-- CSS Assets -->
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (Vite) -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="{{ asset('css/globals.css') }}">
     
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
-    <style>
-        body {
-            background-color: #050505; /* Deep dark for admin */
-            color: #ffffff;
+    <script>
+        // Init theme
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
         }
-        .admin-layout {
-            display: flex;
-            min-height: 100vh;
-        }
-        .admin-sidebar {
-            width: 280px;
-            background: rgba(10, 10, 10, 0.95);
-            border-right: 1px solid rgba(255, 215, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            backdrop-filter: blur(10px);
-            z-index: 200;
-            transition: transform 0.3s ease;
-        }
-        .admin-sidebar-header {
-            padding: 2rem 1.5rem;
-            border-bottom: 1px solid rgba(255, 215, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .admin-sidebar-nav {
-            flex: 1;
-            padding: 1.5rem 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            overflow-y: auto;
-        }
-        .admin-nav-item {
-            padding: 0.85rem 1rem;
-            border-radius: var(--radius-md);
-            color: var(--text-muted);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            transition: all 0.2s;
-            cursor: pointer;
-            font-weight: 500;
-        }
-        .admin-nav-item:hover, .admin-nav-item.active {
-            background: rgba(255, 215, 0, 0.05);
-            color: var(--gold);
-        }
-        .admin-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-        }
-        .admin-content {
-            padding: 2rem 3rem;
-            flex: 1;
-            overflow-y: auto;
-        }
-        .mobile-header {
-            display: none;
-            padding: 1rem 1.5rem;
-            background: #0a0a0a;
-            border-bottom: 1px solid rgba(255,215,0,0.1);
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        @media (max-width: 1024px) {
-            .admin-sidebar {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 85%;
-                max-width: 320px;
-                height: 100vh;
-                transform: translateX(-100%);
-                box-shadow: 5px 0 25px rgba(0,0,0,0.8);
-            }
-            .admin-sidebar.open {
-                transform: translateX(0);
-            }
-            .mobile-header {
-                display: flex;
-                height: 60px;
-                padding: 0 1rem;
-            }
-            .admin-content {
-                padding: 1rem;
-            }
-            .admin-nav-item {
-                padding: 1rem;
-                font-size: 1.05rem;
-            }
-        }
-    </style>
+    </script>
 </head>
-<body x-data="adminApp()">
+<body class="bg-gray-50 dark:bg-deep-900 text-gray-900 dark:text-gray-100 font-sans antialiased selection:bg-gold-500/30 min-h-screen flex flex-col" x-data="adminApp()">
     
     @if(isset($global_announcement) && !empty($global_announcement))
-        <div style="background: var(--warning); color: #000; text-align: center; padding: 0.75rem; font-weight: 600; font-size: 0.95rem; position: relative; z-index: 50;">
+        <div class="bg-amber-500 text-black text-center py-2 px-4 font-semibold text-sm relative z-50 animate-fade-in">
             📢 {{ $global_announcement }}
         </div>
     @endif
     
-    <div class="admin-layout">
-        <!-- Sidebar Overlay (Mobile) -->
-        <div class="sidebar-overlay" :class="{ 'open': sidebarOpen }" @click="sidebarOpen = false"></div>
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- Mobile Sidebar Overlay -->
+        <div x-show="sidebarOpen" 
+             class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+             x-transition.opacity
+             @click="sidebarOpen = false"></div>
 
         <!-- Sidebar -->
-        <aside class="admin-sidebar" :class="{ 'open': sidebarOpen }">
-            <div class="admin-sidebar-header">
-                <div style="font-size: 1.5rem; font-weight: 700; color: var(--gold);">🪙 Arr Admin</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);">Super User Console</div>
+        <aside class="fixed lg:static inset-y-0 left-0 w-72 bg-white dark:bg-deep-800 border-r border-gray-200 dark:border-white/5 flex flex-col z-50 transform transition-transform duration-300 ease-in-out lg:transform-none"
+               :class="sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'">
+            
+            <div class="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
+                <div>
+                    <div class="text-2xl font-bold font-outfit text-gold-500 flex items-center gap-2">
+                        <span>🪙</span> Arr Admin
+                    </div>
+                    <div class="text-xs text-gray-500 font-medium uppercase tracking-wider mt-1">Super User Console</div>
+                </div>
+                <button class="lg:hidden text-gray-500 hover:text-gray-900 dark:hover:text-white" @click="sidebarOpen = false">✕</button>
             </div>
             
-            <nav class="admin-sidebar-nav">
-                <button class="admin-nav-item btn-ghost" :class="{ 'active': activeTab === 'analytics' }" @click="activeTab = 'analytics'; sidebarOpen = false;">
-                    📈 Platform Analytics
+            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all"
+                        :class="activeTab === 'analytics' ? 'bg-gold-400/10 text-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'"
+                        @click="activeTab = 'analytics'; sidebarOpen = false;">
+                    <span class="text-xl">📈</span> Platform Analytics
                 </button>
-                <button class="admin-nav-item btn-ghost" :class="{ 'active': activeTab === 'users' }" @click="activeTab = 'users'; sidebarOpen = false;">
-                    👥 User Management
+                <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all"
+                        :class="activeTab === 'users' ? 'bg-gold-400/10 text-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'"
+                        @click="activeTab = 'users'; sidebarOpen = false;">
+                    <span class="text-xl">👥</span> User Management
                 </button>
-                <button class="admin-nav-item btn-ghost" :class="{ 'active': activeTab === 'settings' }" @click="activeTab = 'settings'; sidebarOpen = false;">
-                    ⚙️ Global Configuration
+                <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all"
+                        :class="activeTab === 'settings' ? 'bg-gold-400/10 text-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'"
+                        @click="activeTab = 'settings'; sidebarOpen = false;">
+                    <span class="text-xl">⚙️</span> Global Configuration
                 </button>
-                <button class="admin-nav-item btn-ghost" :class="{ 'active': activeTab === 'assistance' }" @click="activeTab = 'assistance'; sidebarOpen = false;">
-                    🛡️ Support Queue
+                <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all"
+                        :class="activeTab === 'assistance' ? 'bg-gold-400/10 text-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'"
+                        @click="activeTab = 'assistance'; sidebarOpen = false;">
+                    <span class="text-xl">🛡️</span> Support Queue
                 </button>
-                <button class="admin-nav-item btn-ghost" :class="{ 'active': activeTab === 'logs' }" @click="activeTab = 'logs'; sidebarOpen = false;">
-                    📜 System Audit Logs
+                <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all"
+                        :class="activeTab === 'logs' ? 'bg-gold-400/10 text-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'"
+                        @click="activeTab = 'logs'; sidebarOpen = false;">
+                    <span class="text-xl">📜</span> System Audit Logs
                 </button>
             </nav>
             
-            <div style="padding: 1.5rem 1rem; border-top: 1px solid rgba(255, 215, 0, 0.1);">
-                <form action="/api/auth/logout" method="POST" @submit.prevent="fetch('/api/auth/logout', {method: 'POST', headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'}}).then(() => window.location.href='/login')">
-                    <button type="submit" class="admin-nav-item btn-ghost" style="width: 100%; color: var(--danger);">
+            <div class="p-4 border-t border-gray-100 dark:border-white/5 flex gap-2">
+                <button @click="toggleTheme()" class="flex-1 flex items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="Toggle Theme">
+                    <span x-show="!isDark">🌙</span>
+                    <span x-show="isDark">☀️</span>
+                </button>
+                <form action="/api/auth/logout" method="POST" class="flex-[3]" @submit.prevent="fetch('/api/auth/logout', {method: 'POST', headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'}}).then(() => window.location.href='/login')">
+                    <button type="submit" class="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 font-medium transition-colors">
                         🚪 Sign Out
                     </button>
                 </form>
@@ -159,15 +99,24 @@
         </aside>
 
         <!-- Main Content -->
-        <div class="admin-main">
-            <header class="mobile-header">
-                <button class="btn btn-ghost" style="padding: 0.5rem; font-size: 1.5rem;" @click="sidebarOpen = true">☰</button>
-                <div style="font-weight: 700; color: var(--gold); font-size: 1.2rem;">🪙 Arr Admin</div>
-                <div style="width: 32px;"></div> <!-- Spacer to center title -->
+        <div class="flex-1 flex flex-col h-screen overflow-hidden">
+            <!-- Mobile Header -->
+            <header class="lg:hidden flex items-center justify-between p-4 bg-white dark:bg-deep-800 border-b border-gray-200 dark:border-white/5 z-30">
+                <button class="p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg" @click="sidebarOpen = true">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <div class="font-outfit font-bold text-lg text-gold-500">🪙 Arr Admin</div>
+                <div class="w-10"></div> <!-- Spacer -->
             </header>
             
-            <main class="admin-content fade-in">
-                @yield('content')
+            <main class="flex-1 overflow-y-auto p-4 lg:p-8 relative">
+                <!-- Fluid Morph Animation Background -->
+                <div class="fluid-morph absolute -top-40 -left-40 w-96 h-96 bg-gold-400/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="fluid-morph absolute top-40 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" style="animation-delay: -2s;"></div>
+                
+                <div class="relative z-10 max-w-7xl mx-auto">
+                    @yield('content')
+                </div>
             </main>
         </div>
     </div>
@@ -175,6 +124,7 @@
     <script>
         function adminApp() {
             return {
+                isDark: document.documentElement.classList.contains('dark'),
                 sidebarOpen: false,
                 activeTab: 'analytics',
                 settings: {
@@ -200,6 +150,17 @@
 
                 showWalletModal: false,
                 walletForm: { user_id: '', full_name: '', action: 'add', amount: '', note: '' },
+
+                toggleTheme() {
+                    this.isDark = !this.isDark;
+                    if (this.isDark) {
+                        document.documentElement.classList.add('dark');
+                        localStorage.theme = 'dark';
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                        localStorage.theme = 'light';
+                    }
+                },
 
                 async init() {
                     await this.loadAdminData();
@@ -289,6 +250,7 @@
                         this.errorMsg = 'Network error while saving settings.';
                     } finally {
                         this.loading = false;
+                        setTimeout(() => this.message = this.errorMsg = '', 4000);
                     }
                 },
 
@@ -317,6 +279,8 @@
                         }
                     } catch (e) {
                         this.errorMsg = 'Network error while updating user.';
+                    } finally {
+                        setTimeout(() => this.message = this.errorMsg = '', 4000);
                     }
                 },
 
@@ -348,6 +312,7 @@
                         this.errorMsg = 'Network error.';
                     } finally {
                         this.loading = false;
+                        setTimeout(() => this.message = this.errorMsg = '', 4000);
                     }
                 },
 
@@ -383,6 +348,7 @@
                         this.errorMsg = 'Network error.';
                     } finally {
                         this.loading = false;
+                        setTimeout(() => this.message = this.errorMsg = '', 4000);
                     }
                 },
 
@@ -402,6 +368,8 @@
                         await this.loadQueue();
                     } catch (e) {
                         this.errorMsg = 'Failed to resolve dispute.';
+                    } finally {
+                        setTimeout(() => this.message = this.errorMsg = '', 4000);
                     }
                 },
 
@@ -430,6 +398,7 @@
                         this.errorMsg = 'Network error.';
                     } finally {
                         this.loading = false;
+                        setTimeout(() => this.message = this.errorMsg = '', 4000);
                     }
                 },
 

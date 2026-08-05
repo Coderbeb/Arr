@@ -1,281 +1,232 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard — Arr Wallet')
+@section('title', 'Dashboard')
 
 @section('content')
-<div class="fade-in">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+<div class="animate-fade-in-up">
+    
+    <!-- Mobile User Welcome (Hidden on MD) -->
+    <div class="md:hidden mb-4">
+        <h1 class="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+            Welcome, {{ explode(' ', Auth::user()->full_name)[0] }} 👋
+        </h1>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Active Trader</p>
+    </div>
+
+    <!-- Desktop User Welcome -->
+    <div class="hidden md:flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-            <h1>Welcome, {{ Auth::user()->full_name }} 👋</h1>
-            <p>P2P Fiat Trading & Dual-Balance Escrow System</p>
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                Welcome, {{ Auth::user()->full_name }} 👋
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400 mt-1">P2P Fiat Trading & Dual-Balance Escrow System</p>
         </div>
-        <span class="badge badge-success">Active Trader</span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20">
+            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Active Trader
+        </span>
     </div>
 
     @if(empty(Auth::user()->upi_id))
-    <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.5rem; color: var(--warning); display: flex; align-items: center; gap: 0.5rem;">
-        <span style="font-size: 1.2rem;">⚠️</span>
-        <span><strong>Action Required:</strong> Please set your UPI ID before your next trade to receive payments smoothly.</span>
+    <div class="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 p-3 md:p-4 rounded-xl mb-6 md:mb-8 flex items-start sm:items-center gap-2 md:gap-3 text-amber-800 dark:text-amber-400">
+        <span class="text-lg md:text-2xl shrink-0">⚠️</span>
+        <span class="text-xs md:text-sm"><strong>Action Required:</strong> Set your UPI ID before trading.</span>
     </div>
     @endif
 
-    <!-- Balance Cards Grid -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-        <div class="balance-card">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👛</div>
-            <div class="balance-amount">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</div>
-            <div class="balance-label">Available Wallet Balance</div>
+    <!-- Mobile Compact Balance Card (Single Card, multi-value) -->
+    <div class="md:hidden bg-gradient-to-br from-gray-900 to-black dark:from-white/10 dark:to-white/5 rounded-2xl p-4 mb-6 shadow-xl text-white relative overflow-hidden">
+        <div class="absolute -right-10 -top-10 w-32 h-32 bg-gold-500/20 rounded-full blur-2xl"></div>
+        <div class="flex justify-between items-end mb-4">
+            <div>
+                <div class="text-[10px] font-semibold text-gray-300 uppercase tracking-wider mb-1">Wallet Balance</div>
+                <div class="text-3xl font-bold">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</div>
+            </div>
+            <div class="text-right">
+                <div class="text-[10px] font-semibold text-gray-300 uppercase tracking-wider mb-1 flex items-center justify-end gap-1"><span class="text-amber-400">🔒</span> Escrow</div>
+                <div class="text-lg font-bold">₹{{ number_format(Auth::user()->escrow_balance, 2) }}</div>
+            </div>
         </div>
-
-        <div class="card" style="text-align: center;">
-            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔒</div>
-            <div style="font-size: 1.8rem; font-weight: 700; color: var(--warning);">₹{{ number_format(Auth::user()->escrow_balance, 2) }}</div>
-            <div class="balance-label">Locked Escrow Balance</div>
-        </div>
-
-        <div class="card" style="text-align: center;">
-            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">✅</div>
-            <div style="font-size: 1.8rem; font-weight: 700; color: var(--info);">{{ Auth::user()->total_trades }}</div>
-            <div class="balance-label">Total Completed Trades</div>
+        <div class="pt-3 border-t border-white/10 flex justify-between items-center text-xs">
+            <span class="text-gray-300">Total Trades: {{ Auth::user()->total_trades }}</span>
+            <a href="{{ route('trade') }}" class="text-gold-400 font-bold">Trade Now →</a>
         </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="card card-glow" style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(245,166,35,0.05));">
-        <div>
-            <h3 style="color: var(--text-primary); margin-bottom: 0.25rem;">Start P2P Trade</h3>
-            <p>Create a sell order or match with active buyers in real-time.</p>
+    <!-- Desktop Balance Cards Grid -->
+    <div class="hidden md:grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="glass-card relative overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-gold-400/20 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+            <div class="relative p-6">
+                <div class="text-4xl mb-3">👛</div>
+                <div class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</div>
+                <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Available Wallet Balance</div>
+            </div>
         </div>
-        <a href="{{ route('trade') }}" class="btn btn-primary btn-lg">
-            ⚡ Open Trade Room
-        </a>
+        <div class="glass-card relative overflow-hidden group text-center">
+            <div class="absolute inset-0 bg-gradient-to-br from-amber-400/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+            <div class="relative p-6">
+                <div class="text-4xl mb-3">🔒</div>
+                <div class="text-3xl font-bold text-amber-500 tracking-tight">₹{{ number_format(Auth::user()->escrow_balance, 2) }}</div>
+                <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Locked Escrow Balance</div>
+            </div>
+        </div>
+        <div class="glass-card relative overflow-hidden group text-center">
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+            <div class="relative p-6">
+                <div class="text-4xl mb-3">✅</div>
+                <div class="text-3xl font-bold text-blue-500 tracking-tight">{{ Auth::user()->total_trades }}</div>
+                <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Total Completed Trades</div>
+            </div>
+        </div>
     </div>
 
     <!-- LIVE ORDERS DASHBOARD -->
-    <div x-data="liveOrders()" x-init="init()">
-        <div class="section-title" style="margin-bottom: 1.5rem; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center;">
-            <span>Live Orders</span>
-            <button @click="loadActiveState()" class="btn btn-secondary btn-sm" :disabled="loadingAction === 'refresh'">
+    <div x-data="liveOrders()" x-init="init()" class="relative">
+        <div class="flex items-center justify-between mb-4 md:mb-6">
+            <h2 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Active Activity</h2>
+            <button @click="loadActiveState()" class="text-gold-500 dark:text-gold-400 font-bold text-sm md:text-base px-2 py-1" :disabled="loadingAction === 'refresh'">
                 <span x-show="loadingAction !== 'refresh'">↻ Refresh</span>
-                <span x-show="loadingAction === 'refresh'" style="display: flex; align-items: center; gap: 0.5rem;">
-                    <svg class="spinner-svg" viewBox="0 0 50 50" style="width: 16px; height: 16px;"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
-                    Refreshing...
+                <span x-show="loadingAction === 'refresh'" class="flex items-center gap-1">
+                    <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Updating...
                 </span>
             </button>
         </div>
 
-        <template x-if="message">
-            <div class="toast toast-success" style="position: static; transform: none; margin-bottom: 1rem; width: 100%;" x-text="message"></div>
-        </template>
-        <template x-if="error">
-            <div class="toast toast-error" style="position: static; transform: none; margin-bottom: 1rem; width: 100%;" x-text="error"></div>
-        </template>
-
-        <!-- No Orders State -->
-        <template x-if="!loading && activeQueues.length === 0 && openOrders.length === 0 && trades.length === 0">
-            <div style="text-align: center; padding: 2rem; background: var(--bg-card); border-radius: var(--radius-md); border: 1px solid var(--border);">
-                <div style="font-size: 2rem; margin-bottom: 1rem; color: var(--text-muted);">📭</div>
-                <h4 style="color: var(--text-muted);">No active orders</h4>
-                <p style="margin-bottom: 1rem;">You don't have any pending requests.</p>
-                <a href="{{ route('trade') }}" class="btn btn-primary btn-sm">Create New Order</a>
+        <!-- Skeleton Loader -->
+        <template x-if="initialLoad">
+            <div class="space-y-3 md:space-y-4">
+                <div class="bg-white dark:bg-black/20 rounded-xl p-4 md:p-6 animate-pulse flex flex-col gap-3">
+                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                    <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                </div>
+                <div class="bg-white dark:bg-black/20 rounded-xl p-4 md:p-6 animate-pulse flex flex-col gap-3">
+                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                    <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                </div>
             </div>
         </template>
 
-        <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <template x-if="message">
+            <div class="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 p-3 rounded-lg mb-4 text-green-700 dark:text-green-400 text-sm font-medium" x-text="message"></div>
+        </template>
+        <template x-if="error">
+            <div class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-3 rounded-lg mb-4 text-red-700 dark:text-red-400 text-sm font-medium" x-text="error"></div>
+        </template>
+
+        <!-- No Orders State -->
+        <template x-if="!initialLoad && activeQueues.length === 0 && openOrders.length === 0 && trades.length === 0">
+            <div class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-2xl p-8 md:p-12 flex flex-col items-center justify-center text-center">
+                <div class="text-4xl md:text-6xl mb-3 opacity-50">📭</div>
+                <h4 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-1">No active activity</h4>
+                <p class="text-sm md:text-base text-gray-500 dark:text-gray-400 mb-5">You don't have any pending requests.</p>
+                <a href="{{ route('trade') }}" class="btn-primary py-2 px-6 rounded-xl text-sm md:text-base">Start Trading</a>
+            </div>
+        </template>
+
+        <div class="flex flex-col gap-3 md:gap-4" x-show="!initialLoad" style="display: none;">
             
             <!-- ACTIVE TRADES (Matched) -->
             <template x-for="trade in trades" :key="trade.id">
-                <div class="card card-glow" style="border-left: 4px solid var(--gold);">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-                        <div>
-                            <span class="badge badge-warning" x-text="trade.status"></span>
-                            <div style="font-size: 1.5rem; font-weight: 700; margin-top: 0.5rem;">₹<span x-text="trade.amount"></span></div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">Trade ID: <span x-text="trade.id.slice(0, 8)"></span></div>
-                        </div>
-                        <div style="text-align: right;">
-                            <span class="badge" :class="trade.buyer_id === '{{ Auth::user()->id }}' ? 'badge-success' : 'badge-primary'">
+                <div class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-2xl overflow-hidden relative shadow-sm">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-gold-400"></div>
+                    <div class="p-4 md:p-5">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <span class="inline-flex px-2 py-0.5 rounded text-[10px] md:text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400" x-text="trade.status.replace('_', ' ')"></span>
+                                <div class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mt-1">₹<span x-text="trade.amount"></span></div>
+                                <div class="text-[10px] md:text-xs font-mono text-gray-500 dark:text-gray-400">ID: <span x-text="trade.id.slice(0, 8)"></span></div>
+                            </div>
+                            <span class="inline-flex px-2.5 py-1 rounded-md text-[10px] md:text-sm font-bold tracking-wider" 
+                                  :class="trade.buyer_id === '{{ Auth::user()->id }}' ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'">
                                 <span x-text="trade.buyer_id === '{{ Auth::user()->id }}' ? 'BUYING' : 'SELLING'"></span>
                             </span>
                         </div>
-                    </div>
 
-                    <!-- BUYER ACTIONS -->
-                    <template x-if="trade.buyer_id === '{{ Auth::user()->id }}'">
-                        <div>
-                            <template x-if="trade.status === 'pending_payment'">
-                                <div>
-                                    <p style="margin-bottom: 0.5rem; font-size: 0.9rem;">Pay to Seller UPI: <strong x-text="trade.order.seller_upi_id" style="color: var(--gold);"></strong></p>
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem; margin-bottom: 1rem;">
-                                        <a :href="trade.deepLinks?.gpay" class="btn btn-gpay btn-sm">GPay</a>
-                                        <a :href="trade.deepLinks?.phonepe" class="btn btn-phonepe btn-sm">PhonePe</a>
-                                    </div>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <input type="text" class="input input-sm font-mono" placeholder="UTR Number" x-model="utrNumbers[trade.id]">
-                                        <label class="btn btn-secondary btn-sm" style="cursor: pointer; margin: 0; white-space: nowrap;">
-                                            📁 Image
-                                            <input type="file" accept="image/*" style="display: none;" @change="screenshotFiles[trade.id] = $event.target.files[0]">
-                                        </label>
-                                    </div>
-                                    <div x-show="screenshotFiles[trade.id]" style="font-size: 0.8rem; color: var(--success); margin: 0.5rem 0;">Screenshot selected</div>
-                                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                                        <button class="btn btn-primary btn-sm btn-full" @click="submitPayment(trade.id)" :disabled="loadingAction !== null">
-                                            <span x-show="loadingAction !== 'submit-' + trade.id">Submit Proof</span>
-                                            <span x-show="loadingAction === 'submit-' + trade.id" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                                <svg class="spinner-svg" viewBox="0 0 50 50" style="width: 16px; height: 16px;"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
-                                                Processing...
-                                            </span>
-                                        </button>
-                                        <button class="btn btn-secondary btn-sm btn-full" @click="handleBuyerCancel(trade.id)" :disabled="loadingAction !== null">
-                                            <span x-show="loadingAction !== 'cancel-' + trade.id">Cancel</span>
-                                            <span x-show="loadingAction === 'cancel-' + trade.id" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                                <svg class="spinner-svg" viewBox="0 0 50 50" style="width: 16px; height: 16px;"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
-                                                ...
-                                            </span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </template>
-                            <template x-if="trade.status === 'payment_submitted'">
-                                <div style="color: var(--info); font-size: 0.9rem;">
-                                    ⏳ Proof submitted. Waiting for seller to confirm.
-                                </div>
-                            </template>
-                            <template x-if="trade.status === 'seller_rejected'">
-                                <div style="background: rgba(220,38,38,0.1); border-radius: var(--radius-sm); padding: 1rem; border: 1px solid var(--danger);">
-                                    <p style="color: var(--danger); font-weight: 700; margin-bottom: 0.5rem;">⚠️ Seller rejected your payment.</p>
-                                    <p style="font-size: 0.9rem; margin-bottom: 1rem;">Please appeal with 3 proofs.</p>
-                                    
-                                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
-                                        <label class="btn btn-secondary btn-sm" style="cursor: pointer; text-align: left;">
-                                            🎥 Screen Recording
-                                            <input type="file" accept="video/*" style="display: none;" @change="appealFiles[trade.id] = { ...appealFiles[trade.id], video: $event.target.files[0] }">
-                                        </label>
-                                        <div x-show="appealFiles[trade.id]?.video" style="font-size: 0.8rem; color: var(--success);">Recording selected</div>
+                        <!-- BUYER ACTIONS -->
+                        <template x-if="trade.buyer_id === '{{ Auth::user()->id }}'">
+                            <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3 md:p-4 border border-gray-100 dark:border-white/5">
+                                <template x-if="trade.status === 'pending_payment'">
+                                    <div>
+                                        <p class="mb-3 text-xs md:text-sm text-gray-700 dark:text-gray-300">Seller UPI: <strong class="text-gold-500 font-mono" x-text="trade.order.seller_upi_id"></strong></p>
+                                        <div class="flex gap-2 mb-4">
+                                            <a :href="trade.deepLinks?.gpay" class="flex-1 text-center py-2 rounded-lg bg-gradient-to-r from-blue-500 to-green-500 text-white text-xs md:text-sm font-medium">GPay</a>
+                                            <a :href="trade.deepLinks?.phonepe" class="flex-1 text-center py-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-800 text-white text-xs md:text-sm font-medium">PhonePe</a>
+                                        </div>
                                         
-                                        <label class="btn btn-secondary btn-sm" style="cursor: pointer; text-align: left;">
-                                            📄 Bank Statement (PDF)
-                                            <input type="file" accept="application/pdf" style="display: none;" @change="appealFiles[trade.id] = { ...appealFiles[trade.id], pdf: $event.target.files[0] }">
-                                        </label>
-                                        <div x-show="appealFiles[trade.id]?.pdf" style="font-size: 0.8rem; color: var(--success);">PDF selected</div>
-
-                                        <label class="btn btn-secondary btn-sm" style="cursor: pointer; text-align: left;">
-                                            🖼️ Screenshot
-                                            <input type="file" accept="image/*" style="display: none;" @change="appealFiles[trade.id] = { ...appealFiles[trade.id], image: $event.target.files[0] }">
-                                        </label>
-                                        <div x-show="appealFiles[trade.id]?.image" style="font-size: 0.8rem; color: var(--success);">Screenshot selected</div>
+                                        <div class="flex flex-col gap-2">
+                                            <input type="text" class="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 text-xs md:text-sm uppercase font-mono" placeholder="UTR Number" x-model="utrNumbers[trade.id]">
+                                            <label class="w-full text-center py-2 rounded-lg bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white text-xs md:text-sm cursor-pointer border border-transparent hover:border-gray-300 transition-colors">
+                                                <span>📁 Attach Screenshot</span>
+                                                <input type="file" accept="image/*" class="hidden" @change="screenshotFiles[trade.id] = $event.target.files[0]">
+                                            </label>
+                                        </div>
+                                        <div x-show="screenshotFiles[trade.id]" class="text-[10px] font-semibold text-green-500 mt-1">Screenshot selected ✓</div>
+                                        
+                                        <div class="flex gap-2 mt-4">
+                                            <button class="bg-gold-500 hover:bg-gold-600 text-white font-bold text-xs md:text-sm py-2 px-3 rounded-lg flex-1 transition-colors" @click="submitPayment(trade.id)" :disabled="loadingAction !== null">
+                                                <span x-show="loadingAction !== 'submit-' + trade.id">Submit Proof</span>
+                                                <span x-show="loadingAction === 'submit-' + trade.id">Processing...</span>
+                                            </button>
+                                            <button class="bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-500/20 dark:text-red-400 font-bold text-xs md:text-sm py-2 px-3 rounded-lg" @click="handleBuyerCancel(trade.id)" :disabled="loadingAction !== null">
+                                                Cancel
+                                            </button>
+                                        </div>
                                     </div>
-
-                                    <button class="btn btn-danger btn-sm btn-full" @click="handleAppeal(trade.id)" :disabled="loadingAction !== null">
-                                        <span x-show="loadingAction !== 'appeal-' + trade.id">Submit Appeal</span>
-                                        <span x-show="loadingAction === 'appeal-' + trade.id" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;"><svg class="spinner-svg" viewBox="0 0 50 50" style="width: 16px; height: 16px;"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg> Processing...</span>
-                                    </button>
-                                </div>
-                            </template>
-                            <template x-if="trade.status === 'disputed'">
-                                <div style="color: var(--warning); font-size: 0.9rem;">
-                                    ⚠️ Trade is under dispute review by an admin. Please wait.
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-                    <!-- SELLER ACTIONS -->
-                    <template x-if="trade.seller_id === '{{ Auth::user()->id }}'">
-                        <div>
-                            <template x-if="trade.status === 'pending_payment'">
-                                <div>
-                                    <p style="margin-bottom: 1rem; font-size: 0.9rem;">⏳ Waiting for buyer to send payment.</p>
-                                    <button class="btn btn-secondary btn-sm" @click="handleSellerCancelOrder(trade.order_id)" :disabled="loadingAction !== null">
-                                        <span x-show="loadingAction !== 'seller-cancel-' + trade.order_id">Request Cancel</span>
-                                        <span x-show="loadingAction === 'seller-cancel-' + trade.order_id" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                            <svg class="spinner-svg" viewBox="0 0 50 50" style="width: 16px; height: 16px;"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
-                                            Processing...
-                                        </span>
-                                    </button>
-                                </div>
-                            </template>
-                            <template x-if="trade.status === 'payment_submitted'">
-                                <div>
-                                    <p style="margin-bottom: 1rem; font-size: 0.9rem;">Buyer claims payment made. UTR: <strong style="color: var(--gold);" x-text="trade.utr_number"></strong></p>
-                                    
-                                    <template x-if="trade.buyer_payment_screenshot_url || trade.payment_screenshot_url">
-                                        <div style="margin-bottom: 1rem; text-align: center;">
-                                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; text-align: left;">Payment Screenshot:</p>
-                                            <a :href="(trade.buyer_payment_screenshot_url || trade.payment_screenshot_url).replace('http://localhost:8000', '')" target="_blank" title="Click to view full size">
-                                                <img :src="(trade.buyer_payment_screenshot_url || trade.payment_screenshot_url).replace('http://localhost:8000', '')" alt="Payment Proof" style="max-width: 100%; max-height: 250px; border-radius: var(--radius-sm); border: 1px solid var(--border); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                                </template>
+                                <template x-if="trade.status === 'payment_submitted'">
+                                    <div class="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-xs md:text-sm font-medium p-2">
+                                        <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        Proof submitted. Waiting for seller...
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        <!-- SELLER ACTIONS -->
+                        <template x-if="trade.seller_id === '{{ Auth::user()->id }}'">
+                            <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3 md:p-4 border border-gray-100 dark:border-white/5">
+                                <template x-if="trade.status === 'pending_payment'">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs md:text-sm text-gray-500">Waiting for buyer payment...</span>
+                                        <button class="text-red-500 text-xs font-bold" @click="handleSellerCancelOrder(trade.order_id)">Cancel</button>
+                                    </div>
+                                </template>
+                                <template x-if="trade.status === 'payment_submitted'">
+                                    <div>
+                                        <p class="mb-2 text-xs md:text-sm">Buyer UTR: <strong class="text-gold-500 font-mono" x-text="trade.utr_number"></strong></p>
+                                        <template x-if="trade.buyer_payment_screenshot_url || trade.payment_screenshot_url">
+                                            <a :href="(trade.buyer_payment_screenshot_url || trade.payment_screenshot_url)" target="_blank" class="block mb-4">
+                                                <img :src="(trade.buyer_payment_screenshot_url || trade.payment_screenshot_url)" class="w-full max-h-32 object-contain rounded-lg bg-black/5" alt="Proof">
                                             </a>
+                                        </template>
+                                        <div class="flex gap-2">
+                                            <button class="bg-green-500 hover:bg-green-600 text-white font-bold text-xs md:text-sm py-2 px-3 rounded-lg flex-1 transition-colors" @click="confirmReceipt(trade.id)" :disabled="loadingAction !== null">
+                                                Confirm Receipt
+                                            </button>
+                                            <button class="bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 font-bold text-xs md:text-sm py-2 px-3 rounded-lg transition-colors" @click="toggleRejectForm(trade.id)">
+                                                Report
+                                            </button>
                                         </div>
-                                    </template>
-
-                                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                                        <button class="btn btn-success btn-sm btn-full" @click="confirmReceipt(trade.id)" :disabled="loadingAction !== null">
-                                            <span x-show="loadingAction !== 'confirm-' + trade.id">Confirm Payment Received</span>
-                                            <span x-show="loadingAction === 'confirm-' + trade.id" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                                <svg class="spinner-svg" viewBox="0 0 50 50" style="width: 16px; height: 16px;"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
-                                                Processing...
-                                            </span>
-                                        </button>
-                                        <button class="btn btn-danger btn-sm btn-full" @click="toggleRejectForm(trade.id)" :disabled="loadingAction !== null">
-                                            Report Fraud
-                                        </button>
                                     </div>
-
-                                    <div x-show="showRejectForm[trade.id]" style="margin-top: 1rem; background: rgba(220,38,38,0.1); border-radius: var(--radius-sm); padding: 1rem; border: 1px solid var(--danger);">
-                                        <p style="color: var(--danger); font-weight: 700; margin-bottom: 0.5rem;">Reject Payment</p>
-                                        <p style="font-size: 0.9rem; margin-bottom: 1rem;">Upload 3 proofs to reject.</p>
-                                        
-                                        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
-                                            <label class="btn btn-secondary btn-sm" style="cursor: pointer; text-align: left;">
-                                                🎥 Screen Recording
-                                                <input type="file" accept="video/*" style="display: none;" @change="rejectFiles[trade.id] = { ...rejectFiles[trade.id], video: $event.target.files[0] }">
-                                            </label>
-                                            <div x-show="rejectFiles[trade.id]?.video" style="font-size: 0.8rem; color: var(--success);">Recording selected</div>
-                                            
-                                            <label class="btn btn-secondary btn-sm" style="cursor: pointer; text-align: left;">
-                                                📄 Bank Statement (PDF)
-                                                <input type="file" accept="application/pdf" style="display: none;" @change="rejectFiles[trade.id] = { ...rejectFiles[trade.id], pdf: $event.target.files[0] }">
-                                            </label>
-                                            <div x-show="rejectFiles[trade.id]?.pdf" style="font-size: 0.8rem; color: var(--success);">PDF selected</div>
-
-                                            <label class="btn btn-secondary btn-sm" style="cursor: pointer; text-align: left;">
-                                                🖼️ Screenshot
-                                                <input type="file" accept="image/*" style="display: none;" @change="rejectFiles[trade.id] = { ...rejectFiles[trade.id], image: $event.target.files[0] }">
-                                            </label>
-                                            <div x-show="rejectFiles[trade.id]?.image" style="font-size: 0.8rem; color: var(--success);">Screenshot selected</div>
-                                        </div>
-
-                                        <button class="btn btn-danger btn-sm btn-full" @click="handleReject(trade.id)" :disabled="loadingAction !== null">
-                                            <span x-show="loadingAction !== 'reject-' + trade.id">Submit Reject</span>
-                                            <span x-show="loadingAction === 'reject-' + trade.id" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;"><svg class="spinner-svg" viewBox="0 0 50 50" style="width: 16px; height: 16px;"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg> Processing...</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </template>
-                            <template x-if="trade.status === 'disputed'">
-                                <div style="color: var(--warning); font-size: 0.9rem;">
-                                    ⚠️ Under review by admin.
-                                </div>
-                            </template>
-                        </div>
-                    </template>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </template>
 
             <!-- OPEN ORDERS (Unmatched Sells) -->
             <template x-for="order in openOrders" :key="order.id">
-                <div class="card" style="border-left: 4px solid var(--primary);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-2xl overflow-hidden relative shadow-sm">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                    <div class="p-4 md:p-5 flex justify-between items-center gap-4">
                         <div>
-                            <span class="badge badge-info">OPEN SELL ORDER</span>
-                            <div style="font-size: 1.2rem; font-weight: 700; margin-top: 0.25rem;">₹<span x-text="order.amount"></span></div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">Waiting for buyer...</div>
+                            <span class="inline-flex px-2 py-0.5 rounded text-[10px] md:text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400">OPEN SELL</span>
+                            <div class="text-lg md:text-xl font-bold text-gray-900 dark:text-white mt-1">₹<span x-text="order.amount"></span></div>
+                            <div class="text-[10px] md:text-xs text-gray-500">Waiting for match...</div>
                         </div>
-                        <button class="btn btn-secondary btn-sm" @click="handleSellerCancelOrder(order.id)" :disabled="loadingAction !== null">
-                            <span x-show="loadingAction !== 'seller-cancel-' + order.id">Cancel</span>
-                            <span x-show="loadingAction === 'seller-cancel-' + order.id" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                <svg class="spinner-svg" viewBox="0 0 50 50" style="width: 16px; height: 16px;"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
-                                ...
-                            </span>
+                        <button class="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-colors" @click="handleSellerCancelOrder(order.id)" :disabled="loadingAction !== null">
+                            Cancel
                         </button>
                     </div>
                 </div>
@@ -283,19 +234,16 @@
 
             <!-- BUYER QUEUES -->
             <template x-for="queue in activeQueues" :key="queue.amount_id">
-                <div class="card" style="border-left: 4px solid var(--success);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-2xl overflow-hidden relative shadow-sm">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-green-500"></div>
+                    <div class="p-4 md:p-5 flex justify-between items-center gap-4">
                         <div>
-                            <span class="badge badge-success">BUYER QUEUE</span>
-                            <div style="font-size: 1.2rem; font-weight: 700; margin-top: 0.25rem;">₹<span x-text="queue.amount"></span></div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">Position: #<span x-text="queue.position"></span></div>
+                            <span class="inline-flex px-2 py-0.5 rounded text-[10px] md:text-xs font-bold uppercase tracking-wider bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400">QUEUED BUY</span>
+                            <div class="text-lg md:text-xl font-bold text-gray-900 dark:text-white mt-1">₹<span x-text="queue.amount"></span></div>
+                            <div class="text-[10px] md:text-xs text-gray-500">Position: <strong class="text-gray-900 dark:text-white">#<span x-text="queue.position"></span></strong></div>
                         </div>
-                        <button class="btn btn-secondary btn-sm" @click="handleCancelQueue(queue.amount_id)" :disabled="loadingAction !== null">
-                            <span x-show="loadingAction !== 'leave-queue-' + queue.amount_id">Leave Queue</span>
-                            <span x-show="loadingAction === 'leave-queue-' + queue.amount_id" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                <svg class="spinner-svg" viewBox="0 0 50 50" style="width: 16px; height: 16px;"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
-                                ...
-                            </span>
+                        <button class="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-colors" @click="handleCancelQueue(queue.amount_id)" :disabled="loadingAction !== null">
+                            Leave
                         </button>
                     </div>
                 </div>
@@ -305,6 +253,7 @@
     </div>
 </div>
 @endsection
+
 @section('scripts')
 <script>
     function liveOrders() {
@@ -313,6 +262,7 @@
             openOrders: [],
             activeQueues: [],
             loadingAction: null,
+            initialLoad: true,
             message: '',
             error: '',
             utrNumbers: {},
@@ -323,18 +273,18 @@
 
             async init() {
                 await this.loadActiveState();
+                this.initialLoad = false;
+                
                 if (window.Echo) {
                     window.Echo.private(`user.{{ Auth::user()->id }}`)
                         .listen('.trade:update', (e) => {
                             this.loadActiveState();
-                            // Also refresh balances silently without full page reload if possible,
-                            // but for now a simple refresh of state is fine.
                         });
                 }
             },
 
             async loadActiveState() {
-                this.loadingAction = 'refresh';
+                if (!this.initialLoad) this.loadingAction = 'refresh';
                 try {
                     const res = await fetch('/api/trade/my-active');
                     const data = await res.json();
@@ -365,11 +315,12 @@
                     }
                 } finally {
                     this.loadingAction = null;
+                    setTimeout(() => this.message = this.error = '', 3000);
                 }
             },
 
             async handleSellerCancelOrder(orderId) {
-                if (!confirm('Are you sure you want to cancel this sell order?')) return;
+                if (!confirm('Cancel this sell order?')) return;
                 this.loadingAction = 'seller-cancel-' + orderId;
                 try {
                     const res = await fetch(`/api/trade/seller-cancel/${orderId}`, {
@@ -381,15 +332,16 @@
                     else {
                         this.message = 'Order cancelled.';
                         await this.loadActiveState();
-                        setTimeout(() => window.location.reload(), 1000); // Reload to update balances
+                        setTimeout(() => window.location.reload(), 1000);
                     }
                 } finally {
                     this.loadingAction = null;
+                    setTimeout(() => this.message = this.error = '', 3000);
                 }
             },
 
             async handleBuyerCancel(tradeId) {
-                if (!confirm('Are you sure you want to cancel? Consecutive cancels result in a temporary block.')) return;
+                if (!confirm('Cancel trade? Consecutive cancels result in a temporary block.')) return;
                 this.loadingAction = 'cancel-' + tradeId;
                 try {
                     const res = await fetch(`/api/trade/cancel/${tradeId}`, {
@@ -404,6 +356,7 @@
                     }
                 } finally {
                     this.loadingAction = null;
+                    setTimeout(() => this.message = this.error = '', 3000);
                 }
             },
 
@@ -411,7 +364,8 @@
                 const utr = this.utrNumbers[tradeId];
                 const file = this.screenshotFiles[tradeId];
                 if (!utr || !file) {
-                    this.error = 'Please enter UTR number and select a screenshot.';
+                    this.error = 'Please enter UTR and select a screenshot.';
+                    setTimeout(() => this.error = '', 3000);
                     return;
                 }
                 this.error = ''; this.loadingAction = 'submit-' + tradeId;
@@ -433,6 +387,7 @@
                     }
                 } finally {
                     this.loadingAction = null;
+                    setTimeout(() => this.message = this.error = '', 3000);
                 }
             },
 
@@ -446,75 +401,18 @@
                     const data = await res.json();
                     if (!res.ok) this.error = data.error;
                     else {
-                        this.message = 'Trade confirmed and coins released!';
+                        this.message = 'Coins released!';
                         await this.loadActiveState();
-                        setTimeout(() => window.location.reload(), 1000); // Reload to update balances
+                        setTimeout(() => window.location.reload(), 1000);
                     }
                 } finally {
                     this.loadingAction = null;
+                    setTimeout(() => this.message = this.error = '', 3000);
                 }
             },
 
             toggleRejectForm(tradeId) {
                 this.showRejectForm[tradeId] = !this.showRejectForm[tradeId];
-            },
-
-            async handleReject(tradeId) {
-                const files = this.rejectFiles[tradeId];
-                if (!files || !files.video || !files.pdf || !files.image) {
-                    this.error = 'Please upload all 3 proofs (Recording, PDF, Screenshot).';
-                    return;
-                }
-                this.error = ''; this.loadingAction = 'reject-' + tradeId;
-                const formData = new FormData();
-                formData.append('screen_recording', files.video);
-                formData.append('bank_statement', files.pdf);
-                formData.append('txn_screenshot', files.image);
-
-                try {
-                    const res = await fetch(`/api/trade/reject/${tradeId}`, {
-                        method: 'POST',
-                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                        body: formData
-                    });
-                    const data = await res.json();
-                    if (!res.ok) this.error = data.error || data.message;
-                    else {
-                        this.message = data.message || 'Payment rejected.';
-                        await this.loadActiveState();
-                    }
-                } finally {
-                    this.loadingAction = null;
-                }
-            },
-
-            async handleAppeal(tradeId) {
-                const files = this.appealFiles[tradeId];
-                if (!files || !files.video || !files.pdf || !files.image) {
-                    this.error = 'Please upload all 3 proofs (Recording, PDF, Screenshot).';
-                    return;
-                }
-                this.error = ''; this.loadingAction = 'appeal-' + tradeId;
-                const formData = new FormData();
-                formData.append('screen_recording', files.video);
-                formData.append('bank_statement', files.pdf);
-                formData.append('screenshot', files.image);
-
-                try {
-                    const res = await fetch(`/api/dispute/appeal/${tradeId}`, {
-                        method: 'POST',
-                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                        body: formData
-                    });
-                    const data = await res.json();
-                    if (!res.ok) this.error = data.error || data.message;
-                    else {
-                        this.message = data.message || 'Appeal submitted.';
-                        await this.loadActiveState();
-                    }
-                } finally {
-                    this.loadingAction = null;
-                }
             }
         }
     }
