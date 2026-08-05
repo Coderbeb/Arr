@@ -185,5 +185,10 @@
             </template>
         </div>
     </div>
+
+    <!-- Live Orders in Trade Room too -->
+    <div class="mt-8">
+        @include('components.live-orders')
+    </div>
 </div>
 @endsection

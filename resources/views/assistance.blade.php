@@ -130,12 +130,12 @@
                                     <!-- Image -->
                                     <div>
                                         <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">🖼️ Screenshot</label>
-                                        <template x-if="d.buyer_screenshot_url">
-                                            <a :href="d.buyer_screenshot_url" target="_blank" class="block rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
-                                                <img :src="d.buyer_screenshot_url" class="w-full h-auto max-h-48 object-contain bg-black/5" />
+                                        <template x-if="d.buyer_screenshot_url || d.buyer_upi_screenshot_url || (d.trade && d.trade.buyer_payment_screenshot_url)">
+                                            <a :href="d.buyer_screenshot_url || d.buyer_upi_screenshot_url || (d.trade && d.trade.buyer_payment_screenshot_url)" target="_blank" class="block rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
+                                                <img :src="d.buyer_screenshot_url || d.buyer_upi_screenshot_url || (d.trade && d.trade.buyer_payment_screenshot_url)" class="w-full h-auto max-h-48 object-contain bg-black/5" />
                                             </a>
                                         </template>
-                                        <template x-if="!d.buyer_screenshot_url">
+                                        <template x-if="!(d.buyer_screenshot_url || d.buyer_upi_screenshot_url || (d.trade && d.trade.buyer_payment_screenshot_url))">
                                             <div class="text-center py-3 px-4 rounded-lg bg-gray-100 dark:bg-black/30 text-gray-500 text-sm">No image uploaded</div>
                                         </template>
                                     </div>
