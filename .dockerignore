@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+vendor
+.env
+.env.example
+docker/
+npm-debug.log
+yarn-error.log
+storage/logs/*
+!storage/logs/.gitignore
