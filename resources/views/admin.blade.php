@@ -31,7 +31,32 @@
     <!-- Analytics Tab -->
     <div x-show="activeTab === 'analytics'" class="animate-fade-in">
         <template x-if="analytics">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+                <!-- Mobile Compact Analytics (Hidden on MD) -->
+                <div class="md:hidden bg-gradient-to-br from-gray-900 to-black dark:from-white/10 dark:to-white/5 rounded-2xl p-4 mb-6 shadow-xl text-white relative overflow-hidden">
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-gold-500/20 rounded-full blur-2xl"></div>
+                    <div class="mb-4">
+                        <div class="text-[10px] font-semibold text-gray-300 uppercase tracking-wider mb-1">Total Platform Comm.</div>
+                        <div class="text-3xl font-bold text-gold-400">₹<span x-text="parseFloat(analytics.financials.total_commission).toFixed(2)"></span></div>
+                    </div>
+                    <div class="flex justify-between items-end mb-4">
+                        <div>
+                            <div class="text-[10px] font-semibold text-gray-300 uppercase tracking-wider mb-1"><span class="text-amber-400">🔒</span> Escrow</div>
+                            <div class="text-lg font-bold">₹<span x-text="parseFloat(analytics.financials.total_liquidity).toFixed(2)"></span></div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] font-semibold text-gray-300 uppercase tracking-wider mb-1"><span class="text-blue-400">💼</span> Wallets</div>
+                            <div class="text-lg font-bold">₹<span x-text="parseFloat(analytics.financials.total_wallet_balance).toFixed(2)"></span></div>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-white/10 flex justify-between items-center text-xs">
+                        <span class="text-gray-300">Active Users: <strong class="text-green-400" x-text="analytics.users.active"></strong></span>
+                        <span class="text-gray-300">Trades: <strong class="text-emerald-400" x-text="analytics.trades.completed"></strong></span>
+                    </div>
+                </div>
+
+                <!-- Desktop Analytics Grid -->
+                <div class="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- Financials -->
                 <div class="glass-card p-6 !border-gold-400/30 dark:!bg-gold-500/5 hover:scale-[1.02] transition-transform">
                     <div class="text-4xl font-bold text-gold-500 mb-2">₹<span x-text="parseFloat(analytics.financials.total_commission).toFixed(2)"></span></div>
@@ -66,13 +91,14 @@
                         <span class="text-gray-600 dark:text-gray-400">Disputed: <strong class="text-red-500" x-text="analytics.trades.disputed"></strong></span>
                     </div>
                 </div>
+                </div>
             </div>
         </template>
     </div>
 
     <!-- Platform Settings Tab -->
     <div x-show="activeTab === 'settings'" class="animate-fade-in">
-        <form @submit.prevent="saveSettings" class="glass-card p-6 sm:p-8">
+        <form @submit.prevent="saveSettings" class="glass-card p-4 sm:p-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 <div class="md:col-span-2 mb-4">
@@ -134,7 +160,7 @@
 
     <!-- Users Management Tab -->
     <div x-show="activeTab === 'users'" class="animate-fade-in">
-        <div class="glass-card p-6">
+        <div class="glass-card p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <p class="text-gray-500 dark:text-gray-400 font-medium">Manage all registered accounts</p>
                 <button class="btn-primary shrink-0" @click="showStaffModal = true">➕ Create Support Staff</button>
@@ -209,7 +235,7 @@
 
     <!-- Audit Logs Tab -->
     <div x-show="activeTab === 'logs'" class="animate-fade-in">
-        <div class="glass-card p-6">
+        <div class="glass-card p-4 sm:p-6">
             <p class="text-gray-500 dark:text-gray-400 font-medium mb-6">Immutable record of all admin actions</p>
             <div class="overflow-x-hidden sm:-mx-6 sm:px-6">
                 <table class="w-full text-left">
@@ -279,7 +305,7 @@
         <template x-if="!loading && disputes.length > 0">
             <div class="space-y-6">
                 <template x-for="d in disputes" :key="d.id">
-                    <div class="glass-card p-6 sm:p-8">
+                    <div class="glass-card p-4 sm:p-8">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-gray-100 dark:border-white/5 gap-4">
                             <h4 class="text-xl font-bold text-gray-900 dark:text-white">
                                 Dispute #<span x-text="d.id.slice(0, 8)"></span> 

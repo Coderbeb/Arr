@@ -58,7 +58,7 @@
         <div class="glass-card !bg-green-50 dark:!bg-green-500/10 !border-green-200 dark:!border-green-500/20 p-4 mb-6 text-green-700 dark:text-green-400 font-medium animate-fade-in" x-text="message"></div>
     </template>
 
-    <div class="glass-card p-6 md:p-8">
+    <div class="glass-card p-4 sm:p-6 md:p-8">
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-xl font-bold text-gray-900 dark:text-white">Pending Disputes</h3>
             <button @click="loadQueue()" class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors" :class="{ 'animate-spin': loading && !initialLoad }">
@@ -83,7 +83,7 @@
         <template x-if="!initialLoad && disputes.length > 0">
             <div class="space-y-6">
                 <template x-for="d in disputes" :key="d.id">
-                    <div class="bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 sm:p-8">
+                    <div class="bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-4 sm:p-6 md:p-8">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-gray-200 dark:border-white/5 gap-4">
                             <h4 class="text-xl font-bold text-gray-900 dark:text-white">
                                 Dispute #<span x-text="d.id.slice(0, 8)"></span> 
@@ -94,7 +94,7 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                             <!-- Buyer Side -->
-                            <div class="bg-white dark:bg-black/20 p-6 rounded-xl border border-gray-100 dark:border-white/5">
+                            <div class="bg-white dark:bg-black/20 p-4 sm:p-6 rounded-xl border border-gray-100 dark:border-white/5">
                                 <div class="flex justify-between items-center mb-6 border-b border-gray-100 dark:border-white/5 pb-4">
                                     <h5 class="text-green-600 dark:text-green-400 font-bold text-lg flex items-center gap-2">
                                         🟢 Buyer Proofs
@@ -169,7 +169,7 @@
                             </div>
 
                             <!-- Seller Side -->
-                            <div class="bg-white dark:bg-black/20 p-6 rounded-xl border border-gray-100 dark:border-white/5">
+                            <div class="bg-white dark:bg-black/20 p-4 sm:p-6 rounded-xl border border-gray-100 dark:border-white/5">
                                 <div class="flex justify-between items-center mb-6 border-b border-gray-100 dark:border-white/5 pb-4">
                                     <h5 class="text-red-600 dark:text-red-400 font-bold text-lg flex items-center gap-2">
                                         🔴 Seller Proofs

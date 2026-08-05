@@ -143,8 +143,8 @@
         
         <!-- Mobile Bottom Navigation Bar -->
         @auth
-            @if(Auth::user()->role !== 'super_admin' && Auth::user()->role !== 'assistance')
-            <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-deep-900 border-t border-gray-200 dark:border-white/10 pb-safe z-50 flex justify-around items-center px-2 py-2">
+            @if(Auth::user()->role !== 'super_admin')
+            <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-deep-900 border-t border-gray-200 dark:border-white/10 pb-safe z-50 flex justify-around items-center px-1 py-2">
                 <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-1 p-2 flex-1 {{ request()->routeIs('dashboard') ? 'text-gold-500 dark:text-gold-400' : 'text-gray-500 dark:text-gray-400' }}">
                     <span class="text-xl">📊</span>
                     <span class="text-[10px] font-bold tracking-wide">Home</span>
@@ -157,6 +157,12 @@
                     <span class="text-xl">💼</span>
                     <span class="text-[10px] font-bold tracking-wide">Wallet</span>
                 </a>
+                @if(Auth::user()->role === 'assistance')
+                <a href="{{ route('assistance') }}" class="flex flex-col items-center gap-1 p-2 flex-1 {{ request()->routeIs('assistance') ? 'text-gold-500 dark:text-gold-400' : 'text-gray-500 dark:text-gray-400' }}">
+                    <span class="text-xl">🛡️</span>
+                    <span class="text-[10px] font-bold tracking-wide">Support</span>
+                </a>
+                @endif
             </nav>
             @endif
         @endauth
