@@ -48,7 +48,7 @@
     }
 }">
     <div class="mb-8">
-        <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center gap-2">
+        <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent flex items-center gap-2 leading-tight">
             <span>🛡️</span> Support Dispute Resolution Queue
         </h1>
         <p class="text-gray-500 dark:text-gray-400 mt-2">Review buyer & seller video proofs and AI confidence scores</p>

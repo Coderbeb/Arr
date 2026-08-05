@@ -7,7 +7,7 @@
     <!-- Top Loading Indicator -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-            <h1 class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent m-0">
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent m-0">
                 <span x-show="activeTab === 'analytics'">📈 Platform Analytics</span>
                 <span x-show="activeTab === 'users'">👥 User Management</span>
                 <span x-show="activeTab === 'settings'">⚙️ Global Configuration</span>
@@ -140,9 +140,9 @@
                 <button class="btn-primary shrink-0" @click="showStaffModal = true">➕ Create Support Staff</button>
             </div>
             
-            <div class="overflow-x-auto -mx-6 px-6">
-                <table class="w-full text-left min-w-[800px]">
-                    <thead>
+            <div class="overflow-x-hidden sm:-mx-6 sm:px-6">
+                <table class="w-full text-left">
+                    <thead class="hidden sm:table-header-group">
                         <tr class="border-b-2 border-gold-400/20 text-gold-600 dark:text-gold-400 text-xs font-bold uppercase tracking-wider">
                             <th class="py-4 px-3">Name / Mobile</th>
                             <th class="py-4 px-3">Role</th>
@@ -152,21 +152,34 @@
                             <th class="py-4 px-3 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                    <tbody class="divide-y divide-gray-100 dark:divide-white/5 block sm:table-row-group">
                         <template x-for="u in users" :key="u.id">
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
-                                <td class="py-4 px-3">
-                                    <div class="font-bold text-gray-900 dark:text-white" x-text="u.full_name"></div>
-                                    <div class="text-sm text-gray-500 dark:text-gray-400" x-text="u.mobile_number"></div>
+                            <tr class="block sm:table-row hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group mb-4 sm:mb-0 border border-gray-200 dark:border-white/10 sm:border-none rounded-xl p-4 sm:p-0">
+                                <td class="flex sm:table-cell justify-between items-center sm:py-4 sm:px-3 py-2 border-b sm:border-none border-gray-100 dark:border-white/5">
+                                    <span class="sm:hidden text-xs font-bold text-gray-500 uppercase">User</span>
+                                    <div class="text-right sm:text-left">
+                                        <div class="font-bold text-gray-900 dark:text-white" x-text="u.full_name"></div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400" x-text="u.mobile_number"></div>
+                                    </div>
                                 </td>
-                                <td class="py-4 px-3">
-                                    <span class="inline-flex px-2 py-1 rounded text-xs font-bold tracking-wider" 
-                                          :class="u.role === 'super_admin' ? 'bg-gold-100 text-gold-700 dark:bg-gold-500/20 dark:text-gold-400' : (u.role === 'assistance' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400')"
-                                          x-text="u.role.replace('_', ' ').toUpperCase()"></span>
+                                <td class="flex sm:table-cell justify-between items-center sm:py-4 sm:px-3 py-2 border-b sm:border-none border-gray-100 dark:border-white/5">
+                                    <span class="sm:hidden text-xs font-bold text-gray-500 uppercase">Role</span>
+                                    <div class="text-right sm:text-left">
+                                        <span class="inline-flex px-2 py-1 rounded text-xs font-bold tracking-wider" 
+                                              :class="u.role === 'super_admin' ? 'bg-gold-100 text-gold-700 dark:bg-gold-500/20 dark:text-gold-400' : (u.role === 'assistance' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400')"
+                                              x-text="u.role.replace('_', ' ').toUpperCase()"></span>
+                                    </div>
                                 </td>
-                                <td class="py-4 px-3 font-bold text-gold-500 text-lg" x-text="'₹' + parseFloat(u.wallet_balance).toFixed(2)"></td>
-                                <td class="py-4 px-3 text-sm text-gray-500 dark:text-gray-400" x-text="formatDate(u.created_at)"></td>
-                                <td class="py-4 px-3">
+                                <td class="flex sm:table-cell justify-between items-center sm:py-4 sm:px-3 py-2 border-b sm:border-none border-gray-100 dark:border-white/5">
+                                    <span class="sm:hidden text-xs font-bold text-gray-500 uppercase">Wallet</span>
+                                    <div class="font-bold text-gold-500 text-lg text-right sm:text-left" x-text="'₹' + parseFloat(u.wallet_balance).toFixed(2)"></div>
+                                </td>
+                                <td class="flex sm:table-cell justify-between items-center sm:py-4 sm:px-3 py-2 border-b sm:border-none border-gray-100 dark:border-white/5">
+                                    <span class="sm:hidden text-xs font-bold text-gray-500 uppercase">Joined</span>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400 text-right sm:text-left" x-text="formatDate(u.created_at)"></div>
+                                </td>
+                                <td class="flex sm:table-cell justify-between items-center sm:py-4 sm:px-3 py-2 border-b sm:border-none border-gray-100 dark:border-white/5">
+                                    <span class="sm:hidden text-xs font-bold text-gray-500 uppercase">Status</span>
                                     <select class="input-field !py-1.5 !px-3 !text-sm w-auto inline-block" 
                                         x-model="u.status" 
                                         @change="updateUserStatus(u.id, u.status)"
@@ -176,16 +189,17 @@
                                         <option value="banned">Banned</option>
                                     </select>
                                 </td>
-                                <td class="py-4 px-3 text-right">
-                                    <div class="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                                <td class="flex sm:table-cell justify-between items-center sm:py-4 sm:px-3 py-3 mt-2 sm:mt-0 text-right">
+                                    <span class="sm:hidden text-xs font-bold text-gray-500 uppercase">Actions</span>
+                                    <div class="flex gap-2 justify-end sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                         <button class="btn-secondary !py-1.5 !px-3 !text-sm" @click="openWalletModal(u)">Wallet</button>
                                         <button class="btn-danger !py-1.5 !px-3 !text-sm" x-show="u.role !== 'super_admin'" @click="deleteUser(u.id)">Delete</button>
                                     </div>
                                 </td>
                             </tr>
                         </template>
-                        <tr x-show="users.length === 0 && !loading">
-                            <td colspan="6" class="py-12 text-center text-gray-500 dark:text-gray-400">No users found.</td>
+                        <tr x-show="users.length === 0 && !loading" class="block sm:table-row">
+                            <td colspan="6" class="py-12 text-center text-gray-500 dark:text-gray-400 block sm:table-cell">No users found.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -197,9 +211,9 @@
     <div x-show="activeTab === 'logs'" class="animate-fade-in">
         <div class="glass-card p-6">
             <p class="text-gray-500 dark:text-gray-400 font-medium mb-6">Immutable record of all admin actions</p>
-            <div class="overflow-x-auto -mx-6 px-6">
-                <table class="w-full text-left min-w-[800px]">
-                    <thead>
+            <div class="overflow-x-hidden sm:-mx-6 sm:px-6">
+                <table class="w-full text-left">
+                    <thead class="hidden sm:table-header-group">
                         <tr class="border-b border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider">
                             <th class="py-4 px-3">Timestamp</th>
                             <th class="py-4 px-3">Admin ID</th>
@@ -207,22 +221,34 @@
                             <th class="py-4 px-3">Target (Type/ID)</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                    <tbody class="divide-y divide-gray-100 dark:divide-white/5 block sm:table-row-group">
                         <template x-for="log in auditLogs" :key="log.id">
-                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                                <td class="py-4 px-3 text-sm text-gray-500 dark:text-gray-400" x-text="formatDate(log.created_at)"></td>
-                                <td class="py-4 px-3 font-mono text-sm text-gray-600 dark:text-gray-300" x-text="log.admin_id.substring(0, 13) + '...'"></td>
-                                <td class="py-4 px-3">
-                                    <span class="inline-flex px-2 py-1 rounded text-xs font-bold tracking-wider bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" x-text="log.action.replace(/_/g, ' ').toUpperCase()"></span>
+                            <tr class="block sm:table-row hover:bg-gray-50 dark:hover:bg-white/5 transition-colors mb-4 sm:mb-0 border border-gray-200 dark:border-white/10 sm:border-none rounded-xl p-4 sm:p-0">
+                                <td class="flex sm:table-cell justify-between items-center sm:py-4 sm:px-3 py-2 border-b sm:border-none border-gray-100 dark:border-white/5">
+                                    <span class="sm:hidden text-xs font-bold text-gray-500 uppercase">Time</span>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400 text-right sm:text-left" x-text="formatDate(log.created_at)"></div>
                                 </td>
-                                <td class="py-4 px-3">
-                                    <div class="font-bold text-xs uppercase text-gold-500 mb-0.5" x-text="log.target_type"></div>
-                                    <div class="font-mono text-xs text-gray-500 dark:text-gray-400" x-text="log.target_id || 'N/A'"></div>
+                                <td class="flex sm:table-cell justify-between items-center sm:py-4 sm:px-3 py-2 border-b sm:border-none border-gray-100 dark:border-white/5">
+                                    <span class="sm:hidden text-xs font-bold text-gray-500 uppercase">Admin ID</span>
+                                    <div class="font-mono text-sm text-gray-600 dark:text-gray-300 text-right sm:text-left" x-text="log.admin_id.substring(0, 13) + '...'"></div>
+                                </td>
+                                <td class="flex sm:table-cell justify-between items-center sm:py-4 sm:px-3 py-2 border-b sm:border-none border-gray-100 dark:border-white/5">
+                                    <span class="sm:hidden text-xs font-bold text-gray-500 uppercase">Action</span>
+                                    <div class="text-right sm:text-left">
+                                        <span class="inline-flex px-2 py-1 rounded text-xs font-bold tracking-wider bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400" x-text="log.action.replace(/_/g, ' ').toUpperCase()"></span>
+                                    </div>
+                                </td>
+                                <td class="flex sm:table-cell justify-between items-center sm:py-4 sm:px-3 py-2 mt-2 sm:mt-0">
+                                    <span class="sm:hidden text-xs font-bold text-gray-500 uppercase">Target</span>
+                                    <div class="text-right sm:text-left">
+                                        <div class="font-bold text-xs uppercase text-gold-500 mb-0.5" x-text="log.target_type"></div>
+                                        <div class="font-mono text-xs text-gray-500 dark:text-gray-400" x-text="log.target_id || 'N/A'"></div>
+                                    </div>
                                 </td>
                             </tr>
                         </template>
-                        <tr x-show="auditLogs.length === 0 && !loading">
-                            <td colspan="4" class="py-12 text-center text-gray-500 dark:text-gray-400">No audit logs available.</td>
+                        <tr x-show="auditLogs.length === 0 && !loading" class="block sm:table-row">
+                            <td colspan="4" class="py-12 text-center text-gray-500 dark:text-gray-400 block sm:table-cell">No audit logs available.</td>
                         </tr>
                     </tbody>
                 </table>
