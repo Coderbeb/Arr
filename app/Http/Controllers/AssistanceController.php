@@ -40,7 +40,19 @@ class AssistanceController extends Controller
                 'raisedBy:id,full_name'
             ])
             ->orderBy('created_at', 'asc')
-            ->get();
+            ->get()
+            ->map(function ($dispute) {
+                $urlFields = [
+                    'buyer_screenshot_url', 'buyer_screen_recording_url', 'buyer_bank_statement_url', 'buyer_upi_screenshot_url',
+                    'seller_screen_recording_url', 'seller_txn_screenshot_url', 'seller_profile_recording_url', 'seller_bank_statement_url'
+                ];
+                foreach ($urlFields as $field) {
+                    if (!empty($dispute->$field) && !str_starts_with($dispute->$field, 'http') && !str_starts_with($dispute->$field, '/storage/')) {
+                        $dispute->$field = '/storage/' . ltrim($dispute->$field, '/');
+                    }
+                }
+                return $dispute;
+            });
 
         return response()->json($disputes);
     }

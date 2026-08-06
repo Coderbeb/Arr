@@ -16,7 +16,13 @@ class ReferralController extends Controller
      */
     public function index(Request $request)
     {
-        $user = $request->user();
+        $user = clone $request->user();
+
+        // Self-heal missing referral codes for older accounts
+        if (empty($user->referral_code)) {
+            $user->referral_code = strtoupper(Str::random(8));
+            User::where('id', $user->id)->update(['referral_code' => $user->referral_code]);
+        }
 
         // Get all referred users
         $referrals = User::where('referred_by', $user->id)

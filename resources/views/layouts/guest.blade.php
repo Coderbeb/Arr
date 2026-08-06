@@ -27,7 +27,7 @@
         }
     </script>
 </head>
-<body class="bg-gray-50 dark:bg-deep-900 text-gray-900 dark:text-gray-100 font-sans antialiased selection:bg-gold-500/30 min-h-screen flex items-center justify-center relative overflow-hidden">
+<body class="bg-gray-50 dark:bg-deep-900 text-gray-900 dark:text-gray-100 font-sans antialiased selection:bg-gold-500/30 min-h-screen relative overflow-x-hidden">
     
     <!-- Ambient Background -->
     <div class="fluid-morph absolute -top-40 -left-40 w-96 h-96 bg-gold-400/20 dark:bg-gold-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -51,7 +51,9 @@
         }
     </script>
 
-    @yield('content')
+    <div class="min-h-screen w-full flex flex-col justify-center py-10 sm:py-16">
+        @yield('content')
+    </div>
 
 </body>
 </html>

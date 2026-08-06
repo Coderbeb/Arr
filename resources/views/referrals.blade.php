@@ -4,70 +4,107 @@
 <div x-data="referralDashboard()" x-init="init()" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in pb-24">
     
     <!-- Header -->
-    <div class="mb-6 sm:mb-8 text-center sm:text-left">
-        <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Refer & Earn</h1>
-        <p class="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1 sm:mt-2">Invite friends and earn coins when they complete their first buy order.</p>
-    </div>
-
-    <template x-if="loading && !referral_code">
-        <div class="flex justify-center items-center h-64">
-            <svg class="animate-spin h-10 w-10 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+    <div class="mb-4 flex items-center justify-between">
+        <h1 class="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Refer & Earn</h1>
+    </div><template x-if="loading && !referral_code">
+        <div class="space-y-8 animate-pulse">
+            <!-- Skeleton for Code, Link & Stats -->
+            <div class="flex flex-col gap-6 lg:flex-row lg:items-stretch">
+                <div class="w-full lg:w-1/3 bg-gray-200 dark:bg-white/5 rounded-2xl h-64"></div>
+                <div class="w-full lg:w-2/3 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div class="bg-gray-200 dark:bg-white/5 rounded-2xl h-32 col-span-2 sm:col-span-1"></div>
+                    <div class="bg-gray-200 dark:bg-white/5 rounded-2xl h-32"></div>
+                    <div class="bg-gray-200 dark:bg-white/5 rounded-2xl h-32"></div>
+                </div>
+            </div>
+            
+            <!-- Skeleton for Milestones -->
+            <div>
+                <div class="h-6 bg-gray-200 dark:bg-white/5 rounded w-48 mb-4"></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-gray-200 dark:bg-white/5 rounded-2xl h-40"></div>
+                    <div class="bg-gray-200 dark:bg-white/5 rounded-2xl h-40"></div>
+                    <div class="bg-gray-200 dark:bg-white/5 rounded-2xl h-40"></div>
+                    <div class="bg-gray-200 dark:bg-white/5 rounded-2xl h-40"></div>
+                </div>
+            </div>
         </div>
     </template>
 
     <template x-if="!loading || referral_code">
         <div class="space-y-8">
             
-            <!-- Code, Link & Stats -->
-            <div class="flex flex-col gap-6 lg:flex-row lg:items-stretch">
-                <!-- Referral Info Card (Mobile First) -->
-                <div class="w-full lg:w-1/3 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-5 sm:p-6 text-white shadow-lg shadow-indigo-500/20 relative overflow-hidden flex flex-col justify-center">
-                    <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/10 blur-2xl"></div>
-                    <div class="relative z-10 space-y-5">
-                        
-                        <!-- Referral Code -->
-                        <div>
-                            <h3 class="text-indigo-100 text-sm font-medium mb-2">Your Referral Code</h3>
-                            <div class="flex items-center gap-2">
-                                <div class="bg-black/20 px-4 py-2 rounded-xl border border-white/10 text-2xl sm:text-3xl font-black tracking-widest w-full text-center" x-text="referral_code"></div>
-                            </div>
-                        </div>
-                        
-                        <!-- Referral Link -->
-                        <div>
-                            <h3 class="text-indigo-100 text-sm font-medium mb-2">Share Link</h3>
-                            <div class="flex items-center gap-2 bg-black/20 rounded-xl p-1.5 backdrop-blur-sm border border-white/10">
-                                <input type="text" readonly class="bg-transparent border-none text-white w-full px-2 text-xs sm:text-sm focus:outline-none" :value="shareUrl">
-                                <button @click="copyLink" class="bg-white text-indigo-600 hover:bg-indigo-50 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors whitespace-nowrap">
-                                    <span x-show="!copied">Copy</span>
-                                    <span x-show="copied">Copied!</span>
-                                </button>
-                            </div>
-                        </div>
+            <!-- Compact Code & Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Referral Code Minimal Card -->
+                <div class="bg-gradient-to-r from-gray-900 to-black dark:from-black dark:to-gray-900 rounded-2xl p-4 text-white shadow-xl flex items-center justify-between border border-gray-800">
+                    <div>
+                        <div class="text-gray-400 text-xs font-bold tracking-widest uppercase mb-1">Your Code</div>
+                        <div class="text-2xl font-black tracking-widest text-indigo-400" x-text="referral_code"></div>
                     </div>
+                    <button @click="copyLink" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm font-bold">
+                        <span x-show="!copied">Copy Link</span>
+                        <span x-show="copied" class="text-emerald-400">Copied!</span>
+                    </button>
                 </div>
 
-                <!-- Stats Cards -->
-                <div class="w-full lg:w-2/3 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-                    <div class="bg-white dark:bg-black/20 rounded-2xl p-4 sm:p-5 border border-gray-100 dark:border-white/5 flex flex-col justify-center col-span-2 sm:col-span-1">
-                        <div class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-semibold mb-1 uppercase tracking-wide">Total</div>
-                        <div class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white" x-text="stats.total"></div>
+                <!-- Minimal Stats Row -->
+                <div class="flex gap-2">
+                    <div class="flex-1 bg-white dark:bg-white/5 rounded-2xl p-3 border border-gray-100 dark:border-white/10 flex flex-col justify-center text-center shadow-sm">
+                        <div class="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total</div>
+                        <div class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white" x-text="stats.total"></div>
                     </div>
-                    <div class="bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl p-4 sm:p-5 border border-emerald-100 dark:border-emerald-500/20 flex flex-col justify-center">
-                        <div class="text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-semibold mb-1 uppercase tracking-wide">Completed</div>
-                        <div class="text-3xl sm:text-4xl font-black text-emerald-700 dark:text-emerald-300 flex items-baseline gap-1 sm:gap-2">
-                            <span x-text="stats.completed"></span>
-                        </div>
+                    <div class="flex-1 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl p-3 border border-emerald-100 dark:border-emerald-500/20 flex flex-col justify-center text-center shadow-sm">
+                        <div class="text-[10px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider mb-1">Done</div>
+                        <div class="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400" x-text="stats.completed"></div>
                     </div>
-                    <div class="bg-amber-50 dark:bg-amber-900/10 rounded-2xl p-4 sm:p-5 border border-amber-100 dark:border-amber-500/20 flex flex-col justify-center">
-                        <div class="text-amber-600 dark:text-amber-400 text-xs sm:text-sm font-semibold mb-1 uppercase tracking-wide">Pending</div>
-                        <div class="text-3xl sm:text-4xl font-black text-amber-700 dark:text-amber-300" x-text="stats.pending"></div>
+                    <div class="flex-1 bg-amber-50 dark:bg-amber-500/10 rounded-2xl p-3 border border-amber-100 dark:border-amber-500/20 flex flex-col justify-center text-center shadow-sm">
+                        <div class="text-[10px] sm:text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider mb-1">Wait</div>
+                        <div class="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-500" x-text="stats.pending"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Rewards Milestones -->
-            <div>
+            <!-- Tabs Navigation -->
+            <div class="flex p-1 space-x-1 bg-gray-100 dark:bg-white/5 rounded-xl w-full mx-auto mb-4 mt-6">
+                <button @click="activeTab = 'instructions'" :class="activeTab === 'instructions' ? 'bg-white dark:bg-black/40 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'" class="flex-1 px-2 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all">Guide</button>
+                <button @click="activeTab = 'track'" :class="activeTab === 'track' ? 'bg-white dark:bg-black/40 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'" class="flex-1 px-2 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all">Track</button>
+                <button @click="activeTab = 'bonus'" :class="activeTab === 'bonus' ? 'bg-white dark:bg-black/40 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'" class="flex-1 px-2 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1">
+                    Bonus
+                    <span x-show="eligiblePost10Claims() > 0 || (stats.completed >= 3 && !claims.includes('tier_1'))" class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                </button>
+            </div>
+
+            <!-- Instructions Tab -->
+            <div x-show="activeTab === 'instructions'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="bg-white dark:bg-white/5 rounded-2xl p-5 sm:p-6 border border-gray-100 dark:border-white/10" style="display: none;">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-5 text-sm uppercase tracking-wider">How it works</h3>
+                <div class="space-y-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-lg shrink-0">1</div>
+                        <div>
+                            <div class="font-bold text-gray-900 dark:text-white text-base mb-1">Share Code</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">Send your unique code or link to your friends.</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-lg shrink-0">2</div>
+                        <div>
+                            <div class="font-bold text-gray-900 dark:text-white text-base mb-1">Friends Buy</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">They sign up and complete their first buy order.</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-full bg-gold-50 dark:bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center font-black text-lg shrink-0">3</div>
+                        <div>
+                            <div class="font-bold text-gray-900 dark:text-white text-base mb-1">Earn Coins</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">Unlock milestone rewards and claim your coins.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rewards Milestones (Bonus Tab) -->
+            <div x-show="activeTab === 'bonus'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" style="display: none;">
                 <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">Milestone Rewards</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
                     
@@ -164,8 +201,8 @@
                 </div>
             </div>
 
-            <!-- Referrals List -->
-            <div class="bg-white dark:bg-black/20 rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
+            <!-- Referrals List (Track Tab) -->
+            <div x-show="activeTab === 'track'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="bg-white dark:bg-black/20 rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
                 <div class="px-6 py-5 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                     <h3 class="font-bold text-gray-900 dark:text-white">Your Referrals</h3>
                     <span class="text-xs text-gray-500 dark:text-gray-400">Total: <span x-text="stats.total"></span></span>
@@ -213,6 +250,7 @@
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('referralDashboard', () => ({
+        activeTab: 'instructions',
         loading: true,
         claiming: false,
         referral_code: '',
