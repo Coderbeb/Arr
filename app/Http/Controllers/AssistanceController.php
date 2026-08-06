@@ -117,6 +117,8 @@ class AssistanceController extends Controller
         });
 
         broadcast(new TradeStatusUpdated($trade))->toOthers();
+        event(new \App\Events\UserActivityUpdated($trade->buyer_id));
+        event(new \App\Events\UserActivityUpdated($trade->seller_id));
 
         return response()->json(['message' => "Dispute resolved in favor of {$request->winner}."]);
     }

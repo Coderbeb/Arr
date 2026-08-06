@@ -38,7 +38,10 @@
             <div class="text-4xl md:text-6xl mb-3 opacity-50">📭</div>
             <h4 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-1">No active activity</h4>
             <p class="text-sm md:text-base text-gray-500 dark:text-gray-400 mb-5">You don't have any pending requests.</p>
-            <a href="{{ route('trade') }}" class="btn-primary py-2 px-6 rounded-xl text-sm md:text-base">Start Trading</a>
+            <div class="flex gap-4 mt-4">
+                <a href="{{ route('buy') }}" class="btn-primary py-2 px-6 rounded-xl text-sm md:text-base">Buy Now</a>
+                <a href="{{ route('sell') }}" class="btn-primary py-2 px-6 rounded-xl text-sm md:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-red-500/30 border-none">Sell Now</a>
+            </div>
         </div>
     </template>
 
@@ -66,6 +69,18 @@
                         <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3 md:p-4 border border-gray-100 dark:border-white/5">
                             <template x-if="trade.status === 'pending_payment'">
                                 <div>
+                                    <!-- PAYMENT TIMER UI -->
+                                    <div class="bg-gray-100 dark:bg-black/30 rounded-xl p-3 flex flex-col items-center justify-center mb-4 border" :class="timers['trade_' + trade.id] === '00:00' ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-white/10'">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <svg class="w-4 h-4 text-gray-500" :class="timers['trade_' + trade.id] === '00:00' ? 'text-red-500 animate-pulse' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Time Remaining to Pay</span>
+                                        </div>
+                                        <span class="text-3xl font-mono font-bold tracking-tight" :class="timers['trade_' + trade.id] === '00:00' ? 'text-red-600 dark:text-red-400 animate-pulse' : 'text-gray-900 dark:text-white'" x-text="timers['trade_' + trade.id] || '--:--'"></span>
+                                    </div>
+                                    <div x-show="timers['trade_' + trade.id] === '00:00'" class="text-xs text-red-600 dark:text-red-400 font-bold text-center mb-3 p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-100 dark:border-red-800">
+                                        Time has expired. Cancelling trade...
+                                    </div>
+
                                     <p class="mb-3 text-xs md:text-sm text-gray-700 dark:text-gray-300">Seller UPI: <strong class="text-gold-500 font-mono" x-text="trade.order.seller_upi_id"></strong></p>
                                     <div class="flex gap-2 mb-4">
                                         <a :href="trade.deepLinks?.gpay" class="flex-1 text-center py-2 rounded-lg bg-gradient-to-r from-blue-500 to-green-500 text-white text-xs md:text-sm font-medium">GPay</a>
@@ -139,9 +154,19 @@
                     <template x-if="trade.seller_id === '{{ Auth::user()->id }}'">
                         <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3 md:p-4 border border-gray-100 dark:border-white/5">
                             <template x-if="trade.status === 'pending_payment'">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-xs md:text-sm text-gray-500">Waiting for buyer payment...</span>
-                                    <button class="text-red-500 hover:text-red-600 text-xs font-bold" @click="handleSellerCancelOrder(trade.order_id)" :disabled="loadingAction !== null" :class="loadingAction !== null ? 'opacity-50 pointer-events-none' : ''">Cancel</button>
+                                <div>
+                                    <!-- PAYMENT TIMER UI -->
+                                    <div class="bg-gray-100 dark:bg-black/30 rounded-xl p-3 flex flex-col items-center justify-center mb-4 border" :class="timers['trade_' + trade.id] === '00:00' ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-white/10'">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <svg class="w-4 h-4 text-gray-500" :class="timers['trade_' + trade.id] === '00:00' ? 'text-red-500 animate-pulse' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Waiting for Buyer Payment</span>
+                                        </div>
+                                        <span class="text-3xl font-mono font-bold tracking-tight" :class="timers['trade_' + trade.id] === '00:00' ? 'text-red-600 dark:text-red-400 animate-pulse' : 'text-gray-900 dark:text-white'" x-text="timers['trade_' + trade.id] || '--:--'"></span>
+                                    </div>
+                                    
+                                    <div class="flex justify-end items-center">
+                                        <button class="text-red-500 hover:text-red-600 text-xs font-bold" @click="handleSellerCancelOrder(trade.order_id)" :disabled="loadingAction !== null" :class="loadingAction !== null ? 'opacity-50 pointer-events-none' : ''">Cancel Request</button>
+                                    </div>
                                 </div>
                             </template>
                             <template x-if="trade.status === 'payment_submitted'">
@@ -217,15 +242,55 @@
         <template x-for="order in openOrders" :key="order.id">
             <div class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-2xl overflow-hidden relative shadow-sm">
                 <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
-                <div class="p-4 md:p-5 flex justify-between items-center gap-4">
-                    <div>
-                        <span class="inline-flex px-2 py-0.5 rounded text-[10px] md:text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400">OPEN SELL</span>
+                <!-- Card Header (Clickable) -->
+                <div class="p-4 md:p-5 flex justify-between items-center gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors" @click="expandedOrder = expandedOrder === order.id ? null : order.id">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex px-2 py-0.5 rounded text-[10px] md:text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400">OPEN SELL</span>
+                            <!-- Chevron Indicator -->
+                            <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" :class="expandedOrder === order.id ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
                         <div class="text-lg md:text-xl font-bold text-gray-900 dark:text-white mt-1">₹<span x-text="order.amount"></span></div>
-                        <div class="text-[10px] md:text-xs text-gray-500">Waiting for match...</div>
+                        <div class="text-[10px] md:text-xs text-gray-500 mt-1 flex items-center gap-1">
+                            <span>Waiting for match...</span>
+                            <span x-show="timers['order_' + order.id] && timers['order_' + order.id] !== '00:00'" class="bg-orange-100 text-orange-600 dark:bg-orange-500/20 px-2 py-0.5 rounded font-mono font-bold">
+                                Expires in: <span x-text="timers['order_' + order.id]"></span>
+                            </span>
+                            <span x-show="timers['order_' + order.id] === '00:00'" class="text-red-500 font-bold ml-1">Expiring...</span>
+                        </div>
                     </div>
-                    <button class="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-colors" @click="handleSellerCancelOrder(order.id)" :disabled="loadingAction !== null" :class="loadingAction !== null ? 'opacity-50 pointer-events-none' : ''">
+                    <button class="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-colors border border-transparent hover:border-red-200" @click.stop="handleSellerCancelOrder(order.id)" :disabled="loadingAction !== null" :class="loadingAction !== null ? 'opacity-50 pointer-events-none' : ''">
                         Cancel
                     </button>
+                </div>
+                
+                <!-- Match History (Collapsible) -->
+                <div x-show="expandedOrder === order.id" x-collapse>
+                    <template x-if="order.trades && order.trades.length > 0">
+                        <div class="border-t border-gray-100 dark:border-white/5 p-4 md:p-5 bg-gray-50 dark:bg-white/5">
+                            <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider">Match History</h4>
+                        <div class="space-y-2">
+                            <template x-for="htrade in order.trades" :key="htrade.id">
+                                <div class="flex items-center justify-between text-xs md:text-sm p-2 rounded-lg bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-2 h-2 rounded-full" :class="htrade.status === 'cancelled' ? 'bg-red-500' : (htrade.status === 'completed' ? 'bg-green-500' : 'bg-gold-500')"></div>
+                                        <span class="font-medium text-gray-900 dark:text-white" x-text="htrade.buyer ? htrade.buyer.full_name : 'Unknown Buyer'"></span>
+                                    </div>
+                                    <div class="flex flex-col items-end">
+                                        <span class="font-bold text-[10px] md:text-xs" 
+                                              :class="htrade.status === 'cancelled' ? 'text-red-500' : 'text-gold-500'" 
+                                              x-text="htrade.cancelled_reason === 'payment_timeout' ? 'Timed Out' : (htrade.status === 'cancelled' ? 'Cancelled by Buyer' : htrade.status.replace('_', ' ').toUpperCase())"></span>
+                                        <span class="text-[10px] text-gray-500" x-text="new Date(htrade.matched_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <template x-if="!order.trades || order.trades.length === 0">
+                        <div class="border-t border-gray-100 dark:border-white/5 p-4 md:p-5 bg-gray-50 dark:bg-white/5 text-center">
+                            <span class="text-xs text-gray-500">No match history yet.</span>
+                        </div>
+                    </template>
                 </div>
             </div>
         </template>
@@ -266,11 +331,25 @@
             rejectFiles: {},
             appealFiles: {},
             showRejectForm: {},
+            timers: {},
+            timerInterval: null,
+            expiredTriggered: {},
+            expandedOrder: null,
 
             async init() {
                 await this.loadActiveState();
+                if (window.Echo) {
+                    window.Echo.private('user.{{ Auth::id() }}')
+                        .listen('.user.activity', (e) => {
+                            this.loadActiveState();
+                        });
+                }
                 this.initialLoad = false;
                 
+                this.timerInterval = setInterval(() => {
+                    this.updateTimers();
+                }, 1000);
+
                 // Refresh when a new trade is created locally (e.g. from trade room)
                 window.addEventListener('trade-updated', () => {
                     this.loadActiveState();
@@ -292,11 +371,67 @@
                     this.trades = data.trades || [];
                     this.openOrders = data.openOrders || [];
                     this.activeQueues = data.activeQueues || [];
+                    this.updateTimers();
                 } catch (e) {
                     console.error("Failed to load live orders");
                 } finally {
                     this.loadingAction = null;
                 }
+            },
+
+            updateTimers() {
+                const now = new Date().getTime();
+                let needsRefresh = false;
+                
+                this.trades.forEach(trade => {
+                    if (trade.status === 'pending_payment' && trade.payment_deadline) {
+                        const timeLeft = this.calculateTimeLeft(trade.payment_deadline, now);
+                        this.timers['trade_' + trade.id] = timeLeft;
+                        if (timeLeft === '00:00' && !this.expiredTriggered['trade_' + trade.id]) {
+                            this.expiredTriggered['trade_' + trade.id] = true;
+                            needsRefresh = true;
+                        }
+                    }
+                });
+                
+                this.openOrders.forEach(order => {
+                    if (order.expires_at) {
+                        const timeLeft = this.calculateTimeLeft(order.expires_at, now);
+                        this.timers['order_' + order.id] = timeLeft;
+                        if (timeLeft === '00:00' && !this.expiredTriggered['order_' + order.id]) {
+                            this.expiredTriggered['order_' + order.id] = true;
+                            needsRefresh = true;
+                        }
+                    }
+                });
+
+                if (needsRefresh) {
+                    this.triggerExpirationCheck();
+                }
+            },
+            
+            async triggerExpirationCheck() {
+                try {
+                    await fetch('/api/trade/check-expirations', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                    });
+                    this.loadActiveState();
+                } catch (e) {
+                    console.error('Error triggering expiration check');
+                }
+            },
+            
+            calculateTimeLeft(targetDateStr, now) {
+                const target = new Date(targetDateStr.endsWith('Z') ? targetDateStr : targetDateStr + 'Z').getTime();
+                const distance = target - now;
+                
+                if (distance < 0) return '00:00';
+                
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
             },
 
             async handleCancelQueue(amountId) {

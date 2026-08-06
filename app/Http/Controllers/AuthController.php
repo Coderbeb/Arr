@@ -23,7 +23,16 @@ class AuthController extends Controller
             'password'      => 'required|string|min:6',
             'upi_id'        => 'nullable|string|max:100',
             'upi_app'       => 'nullable|string|in:gpay,phonepe,paytm,bhim',
+            'referral_code' => 'nullable|string|max:10',
         ]);
+
+        $referredBy = null;
+        if ($request->referral_code) {
+            $referrer = User::where('referral_code', strtoupper($request->referral_code))->first();
+            if ($referrer) {
+                $referredBy = $referrer->id;
+            }
+        }
 
         $user = User::create([
             'id'             => (string) Str::uuid(),
@@ -38,6 +47,7 @@ class AuthController extends Controller
             'wallet_balance' => 0.00,
             'escrow_balance' => 0.00,
             'reputation_score' => 100,
+            'referred_by'    => $referredBy,
             'created_at'     => Carbon::now(),
         ]);
 

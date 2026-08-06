@@ -22,13 +22,21 @@ Route::middleware('auth')->group(function () {
         return view('dashboard');
     })->name('dashboard');
 
-    Route::get('/trade', function () {
-        return view('trade');
-    })->name('trade');
+    Route::get('/buy', function () {
+        return view('buy');
+    })->name('buy');
+
+    Route::get('/sell', function () {
+        return view('sell');
+    })->name('sell');
 
     Route::get('/wallet', function () {
         return view('wallet');
     })->name('wallet');
+
+    Route::get('/referrals', function () {
+        return view('referrals');
+    })->name('referrals.index');
 
     Route::get('/assistance', function () {
         return view('assistance');
@@ -67,6 +75,7 @@ Route::prefix('api')->group(function () {
             Route::post('/seller-cancel/{order_id}', [\App\Http\Controllers\TradeController::class, 'sellerCancel']);
             Route::get('/my-active', [\App\Http\Controllers\TradeController::class, 'getMyActiveTrade']);
             Route::get('/history', [\App\Http\Controllers\TradeController::class, 'history']);
+            Route::post('/check-expirations', [\App\Http\Controllers\TradeController::class, 'checkExpirations']);
         });
     });
 
@@ -97,5 +106,10 @@ Route::prefix('api')->group(function () {
         Route::get('/settings', [\App\Http\Controllers\AdminController::class, 'getSettings']);
         Route::post('/settings', [\App\Http\Controllers\AdminController::class, 'updateSettings']);
         Route::get('/audit-logs', [\App\Http\Controllers\AdminController::class, 'auditLogs']);
+    });
+
+    Route::prefix('referrals')->middleware('auth')->group(function () {
+        Route::get('/', [\App\Http\Controllers\ReferralController::class, 'index']);
+        Route::post('/claim', [\App\Http\Controllers\ReferralController::class, 'claim']);
     });
 });

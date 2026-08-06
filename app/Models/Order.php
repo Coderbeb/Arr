@@ -56,4 +56,9 @@ class Order extends Model
     {
         return $this->hasOne(Trade::class, 'order_id');
     }
+
+    public function trades()
+    {
+        return $this->hasMany(Trade::class, 'order_id')->orderBy('matched_at', 'desc');
+    }
 }

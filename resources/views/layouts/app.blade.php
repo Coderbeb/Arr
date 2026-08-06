@@ -68,11 +68,17 @@
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all {{ request()->routeIs('dashboard') ? 'bg-gold-400/10 text-gold-500 dark:text-gold-400 border-l-4 border-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white' }}">
                         <span class="text-xl">📊</span> Dashboard
                     </a>
-                    <a href="{{ route('trade') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all {{ request()->routeIs('trade') ? 'bg-gold-400/10 text-gold-500 dark:text-gold-400 border-l-4 border-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white' }}">
-                        <span class="text-xl">⚡</span> Trade Room
+                    <a href="{{ route('buy') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all {{ request()->routeIs('buy') ? 'bg-gold-400/10 text-gold-500 dark:text-gold-400 border-l-4 border-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white' }}">
+                        <span class="text-xl">⬇️</span> Buy
+                    </a>
+                    <a href="{{ route('sell') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all {{ request()->routeIs('sell') ? 'bg-gold-400/10 text-gold-500 dark:text-gold-400 border-l-4 border-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white' }}">
+                        <span class="text-xl">⬆️</span> Sell
                     </a>
                     <a href="{{ route('wallet') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all {{ request()->routeIs('wallet') ? 'bg-gold-400/10 text-gold-500 dark:text-gold-400 border-l-4 border-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white' }}">
                         <span class="text-xl">💼</span> Wallet
+                    </a>
+                    <a href="{{ route('referrals.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all {{ request()->routeIs('referrals.index') ? 'bg-gold-400/10 text-gold-500 dark:text-gold-400 border-l-4 border-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white' }}">
+                        <span class="text-xl">🎁</span> Referrals
                     </a>
                 @endif
                 @if(Auth::check() && Auth::user()->role === 'assistance')
@@ -112,6 +118,12 @@
                 </div>
                 
                 <div class="flex items-center gap-3">
+                    @auth
+                        <a href="{{ route('wallet') }}" class="flex items-center gap-2 bg-gradient-to-r from-gold-400/20 to-gold-600/20 border border-gold-500/30 px-3 py-1.5 rounded-full shadow-sm hover:scale-105 transition-transform">
+                            <span class="text-sm">🪙</span>
+                            <span class="text-xs font-bold text-gold-700 dark:text-gold-400 tracking-wide">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</span>
+                        </a>
+                    @endauth
                     <button @click="darkMode = !darkMode" class="p-1.5 text-gray-500 dark:text-gray-400">
                         <span x-show="!darkMode">🌙</span>
                         <span x-show="darkMode">☀️</span>
@@ -129,10 +141,15 @@
             <!-- Desktop Topbar -->
             <header class="hidden md:flex sticky top-0 z-30 bg-white/80 dark:bg-deep-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-white/10 px-8 py-4 items-center justify-end">
                 @auth
-                    <div class="flex items-center gap-3 bg-gray-100 dark:bg-white/5 px-4 py-2 rounded-full border border-gray-200 dark:border-white/10">
-                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        <span class="font-bold text-gray-900 dark:text-white">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</span>
-                    </div>
+                    <a href="{{ route('wallet') }}" class="flex items-center gap-3 bg-gradient-to-r from-gold-400/10 to-gold-600/10 px-5 py-2 rounded-full border border-gold-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)] transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(234,179,8,0.2)] group cursor-pointer">
+                        <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 text-white shadow-md group-hover:rotate-12 transition-transform">
+                            <span class="text-sm">₹</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] font-bold text-gold-600/80 dark:text-gold-400/80 uppercase tracking-widest">Available Balance</span>
+                            <span class="font-extrabold text-gray-900 dark:text-white leading-none text-base">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</span>
+                        </div>
+                    </a>
                 @endauth
             </header>
 
@@ -149,13 +166,21 @@
                     <span class="text-xl">📊</span>
                     <span class="text-[10px] font-bold tracking-wide">Home</span>
                 </a>
-                <a href="{{ route('trade') }}" class="flex flex-col items-center gap-1 p-2 flex-1 {{ request()->routeIs('trade') ? 'text-gold-500 dark:text-gold-400' : 'text-gray-500 dark:text-gray-400' }}">
-                    <span class="text-xl">⚡</span>
-                    <span class="text-[10px] font-bold tracking-wide">Trade</span>
+                <a href="{{ route('buy') }}" class="flex flex-col items-center gap-1 p-2 flex-1 {{ request()->routeIs('buy') ? 'text-gold-500 dark:text-gold-400' : 'text-gray-500 dark:text-gray-400' }}">
+                    <span class="text-xl">⬇️</span>
+                    <span class="text-[10px] font-bold tracking-wide">Buy</span>
+                </a>
+                <a href="{{ route('sell') }}" class="flex flex-col items-center gap-1 p-2 flex-1 {{ request()->routeIs('sell') ? 'text-gold-500 dark:text-gold-400' : 'text-gray-500 dark:text-gray-400' }}">
+                    <span class="text-xl">⬆️</span>
+                    <span class="text-[10px] font-bold tracking-wide">Sell</span>
                 </a>
                 <a href="{{ route('wallet') }}" class="flex flex-col items-center gap-1 p-2 flex-1 {{ request()->routeIs('wallet') ? 'text-gold-500 dark:text-gold-400' : 'text-gray-500 dark:text-gray-400' }}">
                     <span class="text-xl">💼</span>
                     <span class="text-[10px] font-bold tracking-wide">Wallet</span>
+                </a>
+                <a href="{{ route('referrals.index') }}" class="flex flex-col items-center gap-1 p-2 flex-1 {{ request()->routeIs('referrals.index') ? 'text-gold-500 dark:text-gold-400' : 'text-gray-500 dark:text-gray-400' }}">
+                    <span class="text-xl">🎁</span>
+                    <span class="text-[10px] font-bold tracking-wide">Refer</span>
                 </a>
                 @if(Auth::user()->role === 'assistance')
                 <a href="{{ route('assistance') }}" class="flex flex-col items-center gap-1 p-2 flex-1 {{ request()->routeIs('assistance') ? 'text-gold-500 dark:text-gold-400' : 'text-gray-500 dark:text-gray-400' }}">

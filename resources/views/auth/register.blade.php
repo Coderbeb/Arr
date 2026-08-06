@@ -38,11 +38,12 @@
             </div>
 
             <div x-data="{
-                mobile_number: '',
+                errorMessage: '',
                 full_name: '',
+                mobile_number: '',
                 date_of_birth: '',
                 password: '',
-                errorMessage: '',
+                referral_code: new URLSearchParams(window.location.search).get('ref') || '',
                 loading: false,
                 async handleRegister() {
                     this.errorMessage = '';
@@ -58,7 +59,8 @@
                                 mobile_number: this.mobile_number,
                                 full_name: this.full_name,
                                 date_of_birth: this.date_of_birth,
-                                password: this.password
+                                password: this.password,
+                                referral_code: this.referral_code
                             })
                         });
                         const data = await res.json();
@@ -100,6 +102,11 @@
                     <div>
                         <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
                         <input type="password" class="w-full px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium text-base" placeholder="••••••••" x-model="password" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">Referral Code <span class="text-xs font-normal text-gray-500">(Optional)</span></label>
+                        <input type="text" class="w-full px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium text-base uppercase" placeholder="e.g. REF12345" x-model="referral_code">
                     </div>
 
                     <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base sm:text-lg py-3 sm:py-4 px-6 rounded-xl shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none mt-2" :disabled="loading">

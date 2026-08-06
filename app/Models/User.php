@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -41,6 +42,8 @@ class User extends Authenticatable
         'buy_ban_until',
         'created_at',
         'last_login',
+        'referral_code',
+        'referred_by',
     ];
 
     protected $hidden = [
@@ -64,6 +67,30 @@ class User extends Authenticatable
             'created_at' => 'datetime',
             'last_login' => 'datetime',
         ];
+    }
+
+    public function referrer()
+    {
+        return $this->belongsTo(User::class, 'referred_by');
+    }
+
+    public function referrals()
+    {
+        return $this->hasMany(User::class, 'referred_by');
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($user) {
+            if (empty($user->id)) {
+                $user->id = (string) Str::uuid();
+            }
+            if (empty($user->referral_code)) {
+                $user->referral_code = strtoupper(Str::random(8));
+            }
+        });
     }
 
     public function getAuthPasswordName()

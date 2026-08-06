@@ -161,11 +161,13 @@ class TradeController extends Controller
             }
             broadcast(new OrderCreated($order))->toOthers();
 
+            $this->broadcastUserActivity($order->seller_id);
             return response()->json([
                 'order'   => $order,
                 'message' => 'Sell order posted successfully',
             ], 201);
         } else {
+            $this->broadcastUserActivity($order->seller_id, $buyer->id);
             return response()->json([
                 'order'   => $order,
                 'message' => 'Instantly matched with a buyer!',
@@ -242,6 +244,7 @@ class TradeController extends Controller
 
         if ($matchedTrade) {
             broadcast(new TradeStatusUpdated($matchedTrade))->toOthers();
+            $this->broadcastUserActivity($matchedTrade->seller_id, $buyer->id);
             return response()->json([
                 'message'  => 'Matched with a seller instantly!',
                 'position' => 0,
@@ -323,6 +326,7 @@ class TradeController extends Controller
         });
 
         broadcast(new TradeStatusUpdated($trade))->toOthers();
+        $this->broadcastUserActivity($trade->seller_id);
 
         return response()->json(['message' => 'Payment submitted with screenshot. Waiting for seller confirmation.']);
     }
@@ -342,6 +346,7 @@ class TradeController extends Controller
         $settlement = $this->walletService->settleCompletedTrade($trade);
 
         broadcast(new TradeStatusUpdated($trade))->toOthers();
+        $this->broadcastUserActivity($trade->buyer_id, $trade->seller_id);
 
         return response()->json([
             'message' => 'Trade confirmed. Coins released to buyer.',
@@ -417,6 +422,7 @@ class TradeController extends Controller
         ]);
 
         broadcast(new TradeStatusUpdated($trade))->toOthers();
+        $this->broadcastUserActivity($trade->buyer_id);
 
         return response()->json([
             'dispute_id' => $dispute->id,
@@ -469,6 +475,7 @@ class TradeController extends Controller
         });
 
         broadcast(new TradeStatusUpdated($trade))->toOthers();
+        $this->broadcastUserActivity($trade->seller_id);
 
         return response()->json(['message' => 'Trade cancelled successfully.']);
     }
@@ -602,10 +609,26 @@ class TradeController extends Controller
             $trade = Trade::where('order_id', $order->id)->whereIn('status', ['pending_payment', 'payment_submitted'])->first();
             if ($trade) {
                 broadcast(new TradeStatusUpdated($trade))->toOthers();
+                $this->broadcastUserActivity($trade->buyer_id);
             }
         }
 
+        $this->broadcastUserActivity($order->seller_id);
         return response()->json(['message' => 'Cancellation processed.']);
     }
-}
+    public function checkExpirations()
+    {
+        // Force the console command to run synchronously
+        \Illuminate\Support\Facades\Artisan::call('trades:check-expired');
+        return response()->json(['status' => 'success']);
+    }
 
+    private function broadcastUserActivity(...$userIds)
+    {
+        foreach ($userIds as $id) {
+            if ($id) {
+                event(new \App\Events\UserActivityUpdated($id));
+            }
+        }
+    }
+}

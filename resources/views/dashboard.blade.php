@@ -33,49 +33,51 @@
     </div>
     @endif
 
-    <!-- Mobile Compact Balance Card (Single Card, multi-value) -->
-    <div class="md:hidden bg-gradient-to-br from-gray-900 to-black dark:from-white/10 dark:to-white/5 rounded-2xl p-4 mb-6 shadow-xl text-white relative overflow-hidden">
-        <div class="absolute -right-10 -top-10 w-32 h-32 bg-gold-500/20 rounded-full blur-2xl"></div>
-        <div class="flex justify-between items-end mb-4">
-            <div>
-                <div class="text-[10px] font-semibold text-gray-300 uppercase tracking-wider mb-1">Wallet Balance</div>
-                <div class="text-3xl font-bold">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</div>
+    <div x-data="dashboardStats">
+        <!-- Mobile Compact Balance Card (Single Card, multi-value) -->
+        <div class="md:hidden bg-gradient-to-br from-gray-900 to-black dark:from-white/10 dark:to-white/5 rounded-2xl p-4 mb-6 shadow-xl text-white relative overflow-hidden">
+            <div class="absolute -right-10 -top-10 w-32 h-32 bg-gold-500/20 rounded-full blur-2xl"></div>
+            <div class="flex justify-between items-end mb-4">
+                <div>
+                    <div class="text-[10px] font-semibold text-gray-300 uppercase tracking-wider mb-1">Wallet Balance</div>
+                    <div class="text-3xl font-bold">₹<span x-text="stats.wallet_balance.toFixed(2)">{{ number_format(Auth::user()->wallet_balance, 2) }}</span></div>
+                </div>
+                <div class="text-right">
+                    <div class="text-[10px] font-semibold text-gray-300 uppercase tracking-wider mb-1 flex items-center justify-end gap-1"><span class="text-amber-400">🔒</span> Escrow</div>
+                    <div class="text-lg font-bold">₹<span x-text="stats.escrow_balance.toFixed(2)">{{ number_format(Auth::user()->escrow_balance, 2) }}</span></div>
+                </div>
             </div>
-            <div class="text-right">
-                <div class="text-[10px] font-semibold text-gray-300 uppercase tracking-wider mb-1 flex items-center justify-end gap-1"><span class="text-amber-400">🔒</span> Escrow</div>
-                <div class="text-lg font-bold">₹{{ number_format(Auth::user()->escrow_balance, 2) }}</div>
+            <div class="pt-3 border-t border-white/10 flex justify-between items-center text-xs">
+                <span class="text-gray-300">Total Trades: <span x-text="stats.total_trades">{{ Auth::user()->total_trades }}</span></span>
+                <a href="{{ route('buy') }}" class="text-gold-400 font-bold">Trade Now →</a>
             </div>
         </div>
-        <div class="pt-3 border-t border-white/10 flex justify-between items-center text-xs">
-            <span class="text-gray-300">Total Trades: {{ Auth::user()->total_trades }}</span>
-            <a href="{{ route('trade') }}" class="text-gold-400 font-bold">Trade Now →</a>
-        </div>
-    </div>
 
-    <!-- Desktop Balance Cards Grid -->
-    <div class="hidden md:grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="glass-card relative overflow-hidden group">
-            <div class="absolute inset-0 bg-gradient-to-br from-gold-400/20 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
-            <div class="relative p-6">
-                <div class="text-4xl mb-3">👛</div>
-                <div class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</div>
-                <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Available Wallet Balance</div>
+        <!-- Desktop Balance Cards Grid -->
+        <div class="hidden md:grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="glass-card relative overflow-hidden group">
+                <div class="absolute inset-0 bg-gradient-to-br from-gold-400/20 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                <div class="relative p-6">
+                    <div class="text-4xl mb-3">👛</div>
+                    <div class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">₹<span x-text="stats.wallet_balance.toFixed(2)">{{ number_format(Auth::user()->wallet_balance, 2) }}</span></div>
+                    <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Available Wallet Balance</div>
+                </div>
             </div>
-        </div>
-        <div class="glass-card relative overflow-hidden group text-center">
-            <div class="absolute inset-0 bg-gradient-to-br from-amber-400/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
-            <div class="relative p-6">
-                <div class="text-4xl mb-3">🔒</div>
-                <div class="text-3xl font-bold text-amber-500 tracking-tight">₹{{ number_format(Auth::user()->escrow_balance, 2) }}</div>
-                <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Locked Escrow Balance</div>
+            <div class="glass-card relative overflow-hidden group text-center">
+                <div class="absolute inset-0 bg-gradient-to-br from-amber-400/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                <div class="relative p-6">
+                    <div class="text-4xl mb-3">🔒</div>
+                    <div class="text-3xl font-bold text-amber-500 tracking-tight">₹<span x-text="stats.escrow_balance.toFixed(2)">{{ number_format(Auth::user()->escrow_balance, 2) }}</span></div>
+                    <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Locked Escrow Balance</div>
+                </div>
             </div>
-        </div>
-        <div class="glass-card relative overflow-hidden group text-center">
-            <div class="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
-            <div class="relative p-6">
-                <div class="text-4xl mb-3">✅</div>
-                <div class="text-3xl font-bold text-blue-500 tracking-tight">{{ Auth::user()->total_trades }}</div>
-                <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Total Completed Trades</div>
+            <div class="glass-card relative overflow-hidden group text-center">
+                <div class="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                <div class="relative p-6">
+                    <div class="text-4xl mb-3">✅</div>
+                    <div class="text-3xl font-bold text-blue-500 tracking-tight"><span x-text="stats.total_trades">{{ Auth::user()->total_trades }}</span></div>
+                    <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Total Completed Trades</div>
+                </div>
             </div>
         </div>
     </div>
@@ -84,3 +86,51 @@
     @include('components.live-orders')
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('dashboardStats', () => ({
+            stats: {
+                wallet_balance: {{ Auth::user()->wallet_balance }},
+                escrow_balance: {{ Auth::user()->escrow_balance }},
+                total_trades: {{ Auth::user()->total_trades }}
+            },
+            
+            async init() {
+                this.loadStats();
+                
+                // Listen to websocket
+                if (window.Echo) {
+                    window.Echo.private('user.{{ Auth::id() }}')
+                        .listen('.user.activity', (e) => {
+                            this.loadStats();
+                        })
+                        .listen('.trade:update', (e) => {
+                            this.loadStats();
+                        });
+                }
+
+                // Listen to local actions
+                window.addEventListener('trade-updated', () => {
+                    this.loadStats();
+                });
+            },
+
+            async loadStats() {
+                try {
+                    const res = await fetch('/api/wallet/balance');
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.stats.wallet_balance = data.wallet_balance;
+                        this.stats.escrow_balance = data.escrow_balance;
+                        this.stats.total_trades = data.total_trades;
+                    }
+                } catch (e) {
+                    console.error("Failed to load dashboard stats", e);
+                }
+            }
+        }));
+    });
+</script>
+@endpush

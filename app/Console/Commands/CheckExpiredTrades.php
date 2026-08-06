@@ -52,7 +52,7 @@ class CheckExpiredTrades extends Command
                 $buyer = User::where('id', $trade->buyer_id)->lockForUpdate()->first();
                 if ($buyer) {
                     $buyer->consecutive_cancels += 1;
-                    if ($buyer->consecutive_cancels >= 3) {
+                    if ($buyer->consecutive_cancels >= 2) {
                         $buyer->buy_ban_until = Carbon::now()->addMinutes(15);
                     }
                     $buyer->save();
@@ -61,6 +61,8 @@ class CheckExpiredTrades extends Command
                 broadcast(new TradeStatusUpdated($trade));
             });
 
+            event(new \App\Events\UserActivityUpdated($trade->buyer_id));
+            event(new \App\Events\UserActivityUpdated($trade->seller_id));
             $this->info("Cancelled unpaid trade {$trade->id}");
         }
 
@@ -82,6 +84,7 @@ class CheckExpiredTrades extends Command
                 );
             });
 
+            event(new \App\Events\UserActivityUpdated($order->seller_id));
             $this->info("Released expired order {$order->id}");
         }
 

@@ -95,6 +95,7 @@ class DisputeController extends Controller
         }
 
         broadcast(new TradeStatusUpdated($trade))->toOthers();
+        event(new \App\Events\UserActivityUpdated($trade->seller_id));
 
         return response()->json([
             'dispute_id' => $dispute->id,
