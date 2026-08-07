@@ -17,8 +17,8 @@
     },
 
     async loadAmounts() {
-        const res = await fetch('/api/trade/amounts');
-        this.tradeAmounts = await res.json();
+        const data = await ArrCache.fetch('/api/trade/amounts', 30000);
+        this.tradeAmounts = data;
         if (this.tradeAmounts.length > 0) this.selectedAmountId = this.tradeAmounts[0].id;
     },
 

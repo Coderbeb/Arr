@@ -33,8 +33,7 @@
     async loadQueue() {
         this.loading = true;
         try {
-            const res = await fetch('/api/assistance/queue');
-            this.disputes = await res.json();
+            this.disputes = await ArrCache.fetch('/api/assistance/queue', 5000);
         } finally {
             this.loading = false;
         }

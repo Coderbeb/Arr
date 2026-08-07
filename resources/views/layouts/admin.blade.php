@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="turbo-prefetch" content="true">
     <title>@yield('title', 'Admin Panel — Arr Wallet')</title>
     
-    <!-- Fonts -->
+    <!-- Fonts loaded via globals.css — preconnect only -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS (Vite) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -17,6 +17,42 @@
     
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Turbo Drive for Instant Page Loads -->
+    <script type="module">
+        import * as Turbo from 'https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.12/dist/turbo.es2017-esm.min.js';
+        Turbo.start();
+    </script>
+
+    <!-- API Response Cache for Instant Transitions -->
+    <script>
+        window.ArrCache = {
+            _prefix: 'arr_cache_',
+            async fetch(url, ttlMs = 3000, opts = {}) {
+                const key = this._prefix + url;
+                const method = (opts.method || 'GET').toUpperCase();
+                if (method === 'GET') {
+                    try {
+                        const cached = sessionStorage.getItem(key);
+                        if (cached) {
+                            const { data, ts } = JSON.parse(cached);
+                            if (Date.now() - ts < ttlMs) return data;
+                        }
+                    } catch (e) {}
+                }
+                const res = await fetch(url, opts);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                if (method === 'GET') {
+                    try { sessionStorage.setItem(key, JSON.stringify({ data, ts: Date.now() })); }
+                    catch (e) { this.clearAll(); }
+                }
+                return data;
+            },
+            invalidate(url) { try { sessionStorage.removeItem(this._prefix + url); } catch (e) {} },
+            clearAll() { try { Object.keys(sessionStorage).forEach(k => { if (k.startsWith(this._prefix)) sessionStorage.removeItem(k); }); } catch (e) {} }
+        };
+    </script>
     
     <!-- Smart Polling Utility -->
     <script>
@@ -24,6 +60,8 @@
             _timers: {},
             _visible: true,
             init() {
+                if (this._initialized) return;
+                this._initialized = true;
                 document.addEventListener('visibilitychange', () => {
                     this._visible = !document.hidden;
                     Object.keys(this._timers).forEach(key => {
@@ -52,6 +90,14 @@
             stopAll() { Object.keys(this._timers).forEach(k => this.stop(k)); }
         };
         ArrPolling.init();
+
+        // Turbo lifecycle — stop pollers before navigation
+        document.addEventListener('turbo:before-visit', () => {
+            if (window.ArrPolling) window.ArrPolling.stopAll();
+        });
+        document.addEventListener('turbo:before-cache', () => {
+            if (window.ArrPolling) window.ArrPolling.stopAll();
+        });
     </script>
     
     <script>
@@ -246,13 +292,13 @@
                 async init() {
                     await this.loadAdminData();
                     
-                    // Watch for tab changes to load specific data if needed
+                    // Watch for tab changes — use cached data for instant feel
                     this.$watch('activeTab', async (value) => {
                         if (value === 'assistance') {
                             await this.loadQueue();
-                        } else {
-                            await this.loadAdminData();
                         }
+                        // No need to re-fetch everything — cached data is already shown
+                        // The poller will keep things fresh
                     });
 
                     // Smart visibility-aware polling (pauses when tab is hidden)
@@ -275,14 +321,14 @@
                         this.message = '';
                     }
                     try {
-                        const [setRes, userRes, logRes, analyticsRes] = await Promise.all([
-                            fetch('/api/admin/settings'),
-                            fetch('/api/admin/users'),
-                            fetch('/api/admin/audit-logs'),
-                            fetch('/api/admin/analytics')
+                        const cacheTtl = silent ? 2000 : 5000;
+                        const [settingsData, userData, logData, analyticsData] = await Promise.all([
+                            ArrCache.fetch('/api/admin/settings', cacheTtl),
+                            ArrCache.fetch('/api/admin/users', cacheTtl),
+                            ArrCache.fetch('/api/admin/audit-logs', cacheTtl),
+                            ArrCache.fetch('/api/admin/analytics', cacheTtl)
                         ]);
                         
-                        const settingsData = await setRes.json();
                         if(settingsData && settingsData.id) {
                             settingsData.registration_open = settingsData.registration_open ? 1 : 0;
                             settingsData.global_announcement = settingsData.global_announcement || '';
@@ -292,11 +338,9 @@
                             }
                         }
                         
-                        const userData = await userRes.json();
                         this.users = userData.data || userData || [];
-
-                        this.auditLogs = await logRes.json();
-                        this.analytics = await analyticsRes.json();
+                        this.auditLogs = logData;
+                        this.analytics = analyticsData;
                     } catch (e) {
                         if (!silent) this.errorMsg = 'Failed to load admin data.';
                     } finally {
@@ -307,8 +351,7 @@
                 async loadQueue(silent = false) {
                     if (!silent) this.loading = true;
                     try {
-                        const res = await fetch('/api/assistance/queue');
-                        this.disputes = await res.json();
+                        this.disputes = await ArrCache.fetch('/api/assistance/queue', 5000);
                     } catch (e) {
                         if (!silent) this.errorMsg = 'Failed to load support queue.';
                     } finally {

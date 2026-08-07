@@ -272,10 +272,7 @@ document.addEventListener('alpine:init', () => {
 
         async init() {
             try {
-                const res = await fetch('/api/referrals', {
-                    headers: { 'Accept': 'application/json' }
-                });
-                const data = await res.json();
+                const data = await ArrCache.fetch('/api/referrals', 5000);
                 this.referral_code = data.referral_code;
                 this.stats = data.stats;
                 this.claims = data.claims || [];

@@ -24,15 +24,14 @@
     async loadWalletData() {
         this.loading = true;
         try {
-            const balRes = await fetch('/api/wallet/balance');
-            const balData = await balRes.json();
+            const balData = await ArrCache.fetch('/api/wallet/balance', 3000);
             this.balance = balData.wallet_balance;
             this.escrow = balData.escrow_balance;
             // Keep navbar in sync
             window.dispatchEvent(new CustomEvent('wallet-updated', { detail: balData.wallet_balance }));
 
-            const txRes = await fetch('/api/wallet/transactions');
-            this.transactions = await txRes.json();
+            const txData = await ArrCache.fetch('/api/wallet/transactions', 5000);
+            this.transactions = txData;
         } finally {
             this.loading = false;
         }

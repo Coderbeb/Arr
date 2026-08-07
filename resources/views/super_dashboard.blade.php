@@ -111,21 +111,18 @@
             upiApp: '{{ Auth::user()->upi_app ?? "gpay" }}',
 
             async init() {
-                const res = await fetch('/api/trade/amounts');
-                this.tradeAmounts = await res.json();
+                const amounts = await ArrCache.fetch('/api/trade/amounts', 30000);
+                this.tradeAmounts = amounts;
                 if (this.tradeAmounts.length > 0) this.selectedAmountId = this.tradeAmounts[0].id;
 
                 // Smart polling every 5 seconds (visibility-aware)
                 const self = this;
                 ArrPolling.start('super-balance', async () => {
                     try {
-                        const balRes = await fetch('/api/wallet/balance');
-                        if (balRes.ok) {
-                            const data = await balRes.json();
-                            self.stats.wallet_balance = data.wallet_balance;
-                            self.stats.escrow_balance = data.escrow_balance;
-                            window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.wallet_balance }));
-                        }
+                        const data = await ArrCache.fetch('/api/wallet/balance', 3000);
+                        self.stats.wallet_balance = data.wallet_balance;
+                        self.stats.escrow_balance = data.escrow_balance;
+                        window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.wallet_balance }));
                     } catch (e) {}
                 }, 5000, false);
             },
@@ -180,12 +177,12 @@
                     } else {
                         this.message = 'Priority Sell order created!';
                         // Update wallet balance to reflect escrow locking
-                        const balRes = await fetch('/api/wallet/balance', { headers: { 'Accept': 'application/json' } });
-                        if (balRes.ok) {
-                            const balData = await balRes.json();
+                        ArrCache.invalidate('/api/wallet/balance');
+                        try {
+                            const balData = await ArrCache.fetch('/api/wallet/balance', 0);
                             this.stats.wallet_balance = balData.wallet_balance;
                             window.dispatchEvent(new CustomEvent('wallet-updated', { detail: balData.wallet_balance }));
-                        }
+                        } catch (e) {}
                         window.dispatchEvent(new Event('trade-updated'));
                     }
                 } catch (e) {

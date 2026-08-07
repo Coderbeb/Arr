@@ -418,8 +418,17 @@
 
                 // Refresh when a new trade is created locally (e.g. from trade room)
                 window.addEventListener('trade-updated', () => {
+                    ArrCache.invalidate('/api/trade/my-active');
                     this.loadActiveState();
                 });
+
+                // Clean up timer interval on Turbo navigation
+                document.addEventListener('turbo:before-cache', () => {
+                    if (self.timerInterval) {
+                        clearInterval(self.timerInterval);
+                        self.timerInterval = null;
+                    }
+                }, { once: true });
             },
 
             async loadActiveState(isBackground = true) {
@@ -431,8 +440,7 @@
                 }
                 
                 try {
-                    const res = await fetch('/api/trade/my-active');
-                    const data = await res.json();
+                    const data = await ArrCache.fetch('/api/trade/my-active', 3000);
                     this.trades = data.trades || [];
                     this.openOrders = data.openOrders || [];
                     this.activeQueues = data.activeQueues || [];

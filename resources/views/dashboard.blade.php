@@ -108,21 +108,19 @@
 
                 // Listen to local actions (instant feedback for same-page actions)
                 window.addEventListener('trade-updated', () => {
+                    ArrCache.invalidate('/api/wallet/balance');
                     this.loadStats();
                 });
             },
 
             async loadStats() {
                 try {
-                    const res = await fetch('/api/wallet/balance');
-                    if (res.ok) {
-                        const data = await res.json();
-                        this.stats.wallet_balance = data.wallet_balance;
-                        this.stats.escrow_balance = data.escrow_balance;
-                        this.stats.total_trades = data.total_trades;
-                        // Also update navbar balance
-                        window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.wallet_balance }));
-                    }
+                    const data = await ArrCache.fetch('/api/wallet/balance', 3000);
+                    this.stats.wallet_balance = data.wallet_balance;
+                    this.stats.escrow_balance = data.escrow_balance;
+                    this.stats.total_trades = data.total_trades;
+                    // Also update navbar balance
+                    window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.wallet_balance }));
                 } catch (e) {
                     console.error("Failed to load dashboard stats", e);
                 }
