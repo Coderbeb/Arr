@@ -17,8 +17,19 @@
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <!-- instant.page — Prefetch links on hover for near-instant page loads -->
-    <script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module"></script>
+    <!-- Turbo Drive for instant SPA-like page transitions -->
+    <script type="module">
+        import * as Turbo from 'https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.12/dist/turbo.es2017-esm.min.js';
+        Turbo.start();
+    </script>
+
+    <!-- Alpine + Turbo bridge -->
+    <script>
+        window.ArrRegister = function(name, factory) {
+            if (window.Alpine) Alpine.data(name, factory);
+            document.addEventListener('alpine:init', () => Alpine.data(name, factory));
+        };
+    </script>
 
     <!-- API Response Cache -->
     <script>
@@ -86,6 +97,14 @@
             stopAll() { Object.keys(this._timers).forEach(k => this.stop(k)); }
         };
         ArrPolling.init();
+
+        // Turbo lifecycle — stop pollers before navigation
+        document.addEventListener('turbo:before-visit', () => {
+            if (window.ArrPolling) window.ArrPolling.stopAll();
+        });
+        document.addEventListener('turbo:before-cache', () => {
+            if (window.ArrPolling) window.ArrPolling.stopAll();
+        });
     </script>
     
     <script>

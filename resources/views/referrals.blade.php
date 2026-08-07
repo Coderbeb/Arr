@@ -248,8 +248,7 @@
 </div>
 
 <script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('referralDashboard', () => ({
+ArrRegister('referralDashboard', () => ({
         activeTab: 'instructions',
         loading: true,
         claiming: false,
@@ -320,6 +319,5 @@ document.addEventListener('alpine:init', () => {
             }
         }
     }));
-});
 </script>
 @endsection

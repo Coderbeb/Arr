@@ -382,8 +382,7 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('liveOrders', () => ({
+    ArrRegister('liveOrders', () => ({
             trades: [],
             openOrders: [],
             activeQueues: [],
@@ -700,7 +699,6 @@
                     setTimeout(() => { this.message = ''; this.error = ''; }, 4000);
                 }
             }
-        }));
-    });
+    }));
 </script>
 @endpush

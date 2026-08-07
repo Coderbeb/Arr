@@ -89,8 +89,7 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('dashboardStats', () => ({
+    ArrRegister('dashboardStats', () => ({
             stats: {
                 wallet_balance: {{ Auth::user()->wallet_balance }},
                 escrow_balance: {{ Auth::user()->escrow_balance }},
@@ -125,7 +124,6 @@
                     console.error("Failed to load dashboard stats", e);
                 }
             }
-        }));
-    });
+    }));
 </script>
 @endpush

@@ -94,8 +94,7 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('superDashboard', () => ({
+    ArrRegister('superDashboard', () => ({
             stats: {
                 wallet_balance: {{ Auth::user()->wallet_balance }},
                 escrow_balance: {{ Auth::user()->escrow_balance }},
@@ -192,7 +191,6 @@
                     setTimeout(() => this.message = this.error = '', 4000);
                 }
             }
-        }));
-    });
+    }));
 </script>
 @endpush

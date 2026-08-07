@@ -18,13 +18,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="turbo-prefetch" content="true">
     <title>@yield('title', 'Arr Wallet')</title>
     
     <!-- Alpine.js -->
     <script defer crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <!-- instant.page — Prefetch links on hover for near-instant page loads -->
-    <script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module"></script>
+    <!-- Turbo Drive for instant SPA-like page transitions -->
+    <script type="module">
+        import * as Turbo from 'https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.12/dist/turbo.es2017-esm.min.js';
+        Turbo.start();
+    </script>
+
+    <!-- Alpine + Turbo bridge: registers Alpine components on BOTH first load and Turbo navigations -->
+    <script>
+        window.ArrRegister = function(name, factory) {
+            if (window.Alpine) {
+                Alpine.data(name, factory);
+            }
+            document.addEventListener('alpine:init', () => Alpine.data(name, factory));
+        };
+    </script>
 
     <!-- API Response Cache for faster data loading -->
     <script>
@@ -144,6 +158,16 @@
             }
         };
         ArrPolling.init();
+
+        // ── Turbo Lifecycle Management ──────────────────────
+        // Stop all polling before navigating away
+        document.addEventListener('turbo:before-visit', () => {
+            if (window.ArrPolling) window.ArrPolling.stopAll();
+        });
+        // Clean up Alpine state before Turbo caches the page snapshot
+        document.addEventListener('turbo:before-cache', () => {
+            if (window.ArrPolling) window.ArrPolling.stopAll();
+        });
     </script>
     
     <!-- Vite -->
@@ -323,12 +347,17 @@
     @auth
     <script>
         // Global navbar balance polling — keeps wallet display fresh on every page
-        ArrPolling.start('global-balance', async () => {
-            try {
-                const data = await ArrCache.fetch('/api/wallet/balance', 4000);
-                window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.wallet_balance }));
-            } catch (e) {}
-        }, 5000, false);
+        // Uses turbo:load to restart after every Turbo navigation
+        function _startGlobalBalance() {
+            ArrPolling.start('global-balance', async () => {
+                try {
+                    const data = await ArrCache.fetch('/api/wallet/balance', 4000);
+                    window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.wallet_balance }));
+                } catch (e) {}
+            }, 5000, false);
+        }
+        _startGlobalBalance();
+        document.addEventListener('turbo:load', _startGlobalBalance);
     </script>
     @endauth
 </body>
