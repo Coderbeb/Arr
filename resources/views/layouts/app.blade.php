@@ -23,6 +23,9 @@
     <!-- Alpine.js -->
     <script defer crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+    <!-- Turbo Drive for Instant Page Loads -->
+    <script type="module" src="https://cdn.skypack.dev/@hotwired/turbo"></script>
+
     <!-- Smart Polling Utility (replaces broken WebSocket) -->
     <script>
         window.ArrPolling = {
@@ -73,6 +76,11 @@
             }
         };
         ArrPolling.init();
+
+        // Stop all polling when navigating away instantly via Turbo
+        document.addEventListener('turbo:before-visit', () => {
+            if (window.ArrPolling) window.ArrPolling.stopAll();
+        });
     </script>
     
     <!-- Vite -->

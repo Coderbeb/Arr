@@ -2,9 +2,9 @@
 <div x-data="liveOrders()" x-init="init()" class="relative mt-8">
     <div class="flex items-center justify-between mb-4 md:mb-6">
         <h2 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Active Activity</h2>
-        <button @click="loadActiveState()" class="text-gold-500 dark:text-gold-400 font-bold text-sm md:text-base px-2 py-1" :disabled="loadingAction === 'refresh'" :class="loadingAction === 'refresh' ? 'opacity-50 cursor-not-allowed' : ''">
-            <span x-show="loadingAction !== 'refresh'">↻ Refresh</span>
-            <span x-show="loadingAction === 'refresh'" class="flex items-center gap-1">
+        <button @click="loadActiveState(false)" class="text-gold-500 dark:text-gold-400 font-bold text-sm md:text-base px-2 py-1" :disabled="loadingAction === 'refresh'" :class="loadingAction === 'refresh' ? 'opacity-50 cursor-not-allowed' : ''">
+            <span x-show="loadingAction !== 'refresh' && !isPolling">↻ Refresh</span>
+            <span x-show="loadingAction === 'refresh' || isPolling" class="flex items-center gap-1">
                 <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 Updating...
             </span>
@@ -388,6 +388,7 @@
             openOrders: [],
             activeQueues: [],
             loadingAction: null,
+            isPolling: false,
             initialLoad: true,
             message: '',
             error: '',
@@ -421,8 +422,14 @@
                 });
             },
 
-            async loadActiveState() {
-                if (!this.initialLoad) this.loadingAction = 'refresh';
+            async loadActiveState(isBackground = true) {
+                if (!this.initialLoad && !isBackground && !this.loadingAction) {
+                    this.loadingAction = 'refresh';
+                }
+                if (isBackground) {
+                    this.isPolling = true;
+                }
+                
                 try {
                     const res = await fetch('/api/trade/my-active');
                     const data = await res.json();
@@ -433,7 +440,12 @@
                 } catch (e) {
                     console.error("Failed to load live orders");
                 } finally {
-                    this.loadingAction = null;
+                    if (!isBackground && this.loadingAction === 'refresh') {
+                        this.loadingAction = null;
+                    }
+                    if (isBackground) {
+                        this.isPolling = false;
+                    }
                 }
             },
 
