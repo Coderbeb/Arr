@@ -132,6 +132,7 @@
                     else {
                         this.message = data.message;
                         this.stats.wallet_balance = data.new_balance;
+                        window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.new_balance }));
                         this.mintAmount = '';
                     }
                 } catch (e) {
@@ -168,6 +169,7 @@
                         if (balRes.ok) {
                             const balData = await balRes.json();
                             this.stats.wallet_balance = balData.wallet_balance;
+                            window.dispatchEvent(new CustomEvent('wallet-updated', { detail: balData.wallet_balance }));
                         }
                         window.dispatchEvent(new Event('trade-updated'));
                     }

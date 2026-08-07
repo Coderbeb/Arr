@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" x-data="{ 
     darkMode: localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches),
+    globalBalance: {{ Auth::check() ? Auth::user()->wallet_balance : 0 }},
     init() {
         this.$watch('darkMode', val => {
             localStorage.setItem('theme', val ? 'dark' : 'light');
@@ -8,6 +9,9 @@
             else document.documentElement.classList.remove('dark');
         });
         if (this.darkMode) document.documentElement.classList.add('dark');
+        window.addEventListener('wallet-updated', e => {
+            this.globalBalance = e.detail;
+        });
     }
 }" :class="{ 'dark': darkMode }">
 <head>
@@ -126,7 +130,7 @@
                     @auth
                         <a href="{{ route('wallet') }}" class="flex items-center gap-2 bg-gradient-to-r from-gold-400/20 to-gold-600/20 border border-gold-500/30 px-3 py-1.5 rounded-full shadow-sm hover:scale-105 transition-transform">
                             <span class="text-sm">🪙</span>
-                            <span class="text-xs font-bold text-gold-700 dark:text-gold-400 tracking-wide">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</span>
+                            <span class="text-xs font-bold text-gold-700 dark:text-gold-400 tracking-wide" x-text="'₹' + Number(globalBalance).toFixed(2)">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</span>
                         </a>
                     @endauth
                     <button @click="darkMode = !darkMode" class="p-1.5 text-gray-500 dark:text-gray-400">
@@ -152,7 +156,7 @@
                         </div>
                         <div class="flex flex-col">
                             <span class="text-[9px] font-bold text-gold-600/80 dark:text-gold-400/80 uppercase tracking-widest">Available Balance</span>
-                            <span class="font-extrabold text-gray-900 dark:text-white leading-none text-base">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</span>
+                            <span class="font-extrabold text-gray-900 dark:text-white leading-none text-base" x-text="'₹' + Number(globalBalance).toFixed(2)">₹{{ number_format(Auth::user()->wallet_balance, 2) }}</span>
                         </div>
                     </a>
                 @endauth
