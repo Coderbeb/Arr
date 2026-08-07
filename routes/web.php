@@ -19,6 +19,9 @@ Route::middleware('auth')->group(function () {
         if (Auth::user()->role === 'super_admin') {
             return redirect()->route('admin');
         }
+        if (Auth::user()->role === 'super_account') {
+            return redirect()->route('super_dashboard');
+        }
         return view('dashboard');
     })->name('dashboard');
 

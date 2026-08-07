@@ -64,7 +64,7 @@
             </div>
 
             <nav class="flex flex-col gap-2 flex-1">
-                @if(Auth::check() && Auth::user()->role !== 'super_admin')
+                @if(Auth::check() && Auth::user()->role !== 'super_admin' && Auth::user()->role !== 'super_account')
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all {{ request()->routeIs('dashboard') ? 'bg-gold-400/10 text-gold-500 dark:text-gold-400 border-l-4 border-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white' }}">
                         <span class="text-xl">📊</span> Dashboard
                     </a>
@@ -168,7 +168,7 @@
         
         <!-- Mobile Bottom Navigation Bar -->
         @auth
-            @if(Auth::user()->role !== 'super_admin')
+            @if(Auth::user()->role !== 'super_admin' && Auth::user()->role !== 'super_account')
             <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-deep-900 border-t border-gray-200 dark:border-white/10 pb-safe z-50 flex justify-around items-center px-1 py-2">
                 <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-1 p-2 flex-1 {{ request()->routeIs('dashboard') ? 'text-gold-500 dark:text-gold-400' : 'text-gray-500 dark:text-gray-400' }}">
                     <span class="text-xl">📊</span>
