@@ -421,14 +421,6 @@
                     ArrCache.invalidate('/api/trade/my-active');
                     this.loadActiveState();
                 });
-
-                // Clean up timer interval on Turbo navigation
-                document.addEventListener('turbo:before-cache', () => {
-                    if (self.timerInterval) {
-                        clearInterval(self.timerInterval);
-                        self.timerInterval = null;
-                    }
-                }, { once: true });
             },
 
             async loadActiveState(isBackground = true) {

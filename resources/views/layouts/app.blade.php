@@ -18,19 +18,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="turbo-prefetch" content="true">
     <title>@yield('title', 'Arr Wallet')</title>
     
     <!-- Alpine.js -->
     <script defer crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <!-- Turbo Drive for Instant Page Loads (Production CDN — NOT skypack transpiler) -->
-    <script type="module">
-        import * as Turbo from 'https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.12/dist/turbo.es2017-esm.min.js';
-        Turbo.start();
-    </script>
+    <!-- instant.page — Prefetch links on hover for near-instant page loads -->
+    <script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module"></script>
 
-    <!-- API Response Cache for Instant Page Transitions -->
+    <!-- API Response Cache for faster data loading -->
     <script>
         window.ArrCache = {
             _prefix: 'arr_cache_',
@@ -60,8 +56,8 @@
                     } catch (e) {}
                 }
 
-                // Fresh fetch
-                const res = await fetch(url, opts);
+                // Fresh fetch — use window.fetch explicitly to avoid recursion
+                const res = await window.fetch(url, opts);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
 
@@ -94,7 +90,7 @@
         };
     </script>
 
-    <!-- Smart Polling Utility (replaces broken WebSocket) -->
+    <!-- Smart Polling Utility -->
     <script>
         window.ArrPolling = {
             _timers: {},
@@ -148,32 +144,6 @@
             }
         };
         ArrPolling.init();
-
-        // ── Turbo Lifecycle Management ──────────────────────
-        // Stop all polling before navigating away (prevents stale fetches)
-        document.addEventListener('turbo:before-visit', () => {
-            if (window.ArrPolling) window.ArrPolling.stopAll();
-        });
-
-        // Clean up Alpine state before Turbo caches the page snapshot
-        document.addEventListener('turbo:before-cache', () => {
-            if (window.ArrPolling) window.ArrPolling.stopAll();
-            // Remove Alpine-generated attributes from cached snapshot to prevent duplication
-            document.querySelectorAll('[x-data]:not(html)').forEach(el => {
-                if (el._x_dataStack) {
-                    // Reset component state markers so Alpine re-initializes cleanly
-                    el.removeAttribute('x-data-initialized');
-                }
-            });
-        });
-
-        // After Turbo renders the new page, restart global pollers
-        document.addEventListener('turbo:load', () => {
-            // Re-initialize global balance polling on every page
-            if (window._arrStartGlobalBalance) {
-                window._arrStartGlobalBalance();
-            }
-        });
     </script>
     
     <!-- Vite -->
@@ -196,8 +166,8 @@
 
     <div class="flex min-h-screen relative">
         
-        <!-- Desktop Sidebar (Hidden on mobile) — data-turbo-permanent keeps it across navigations -->
-        <aside id="app-sidebar" data-turbo-permanent class="hidden md:flex flex-col fixed top-0 left-0 h-screen w-[260px] bg-white/90 dark:bg-deep-900/90 backdrop-blur-xl border-r border-gray-200 dark:border-white/10 p-5 z-50">
+        <!-- Desktop Sidebar (Hidden on mobile) -->
+        <aside class="hidden md:flex flex-col fixed top-0 left-0 h-screen w-[260px] bg-white/90 dark:bg-deep-900/90 backdrop-blur-xl border-r border-gray-200 dark:border-white/10 p-5 z-50">
             <div class="flex items-center mb-10">
                 <span class="text-2xl font-bold bg-gradient-to-br from-gold-400 to-gold-600 bg-clip-text text-transparent">
                     🪙 Arr Wallet
@@ -245,7 +215,7 @@
                     <span x-show="darkMode">☀️ Light Mode</span>
                 </button>
                 @auth
-                    <form action="/api/auth/logout" method="POST" data-turbo="false" @submit.prevent="fetch('/api/auth/logout', {method: 'POST', headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'}}).then(() => window.location.href='/login')">
+                    <form action="/api/auth/logout" method="POST" @submit.prevent="fetch('/api/auth/logout', {method: 'POST', headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'}}).then(() => window.location.href='/login')">
                         <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
                             <span class="text-xl">🚪</span> Sign Out
                         </button>
@@ -275,7 +245,7 @@
                         <span x-show="darkMode">☀️</span>
                     </button>
                     @auth
-                        <form action="/api/auth/logout" method="POST" data-turbo="false" @submit.prevent="fetch('/api/auth/logout', {method: 'POST', headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'}}).then(() => window.location.href='/login')">
+                        <form action="/api/auth/logout" method="POST" @submit.prevent="fetch('/api/auth/logout', {method: 'POST', headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'}}).then(() => window.location.href='/login')">
                             <button type="submit" class="p-1.5 text-red-500 dark:text-red-400">
                                 🚪
                             </button>
@@ -353,20 +323,12 @@
     @auth
     <script>
         // Global navbar balance polling — keeps wallet display fresh on every page
-        // Wrapped in a function so Turbo can restart it after navigation
-        window._arrStartGlobalBalance = function() {
-            ArrPolling.start('global-balance', async () => {
-                try {
-                    const data = await ArrCache.fetch('/api/wallet/balance', 4000);
-                    window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.wallet_balance }));
-                } catch (e) {}
-            }, 5000, false);
-        };
-
-        // Start on first load and also on every Turbo navigation
-        document.addEventListener('alpine:init', () => {
-            window._arrStartGlobalBalance();
-        });
+        ArrPolling.start('global-balance', async () => {
+            try {
+                const data = await ArrCache.fetch('/api/wallet/balance', 4000);
+                window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.wallet_balance }));
+            } catch (e) {}
+        }, 5000, false);
     </script>
     @endauth
 </body>
