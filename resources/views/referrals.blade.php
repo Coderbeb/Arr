@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="referralDashboard()" x-init="init()" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in pb-24">
+<div x-data="referralDashboard()" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in pb-24">
     
     <!-- Header -->
     <div class="mb-4 flex items-center justify-between">
@@ -246,7 +246,9 @@
         </div>
     </template>
 </div>
+@endsection
 
+@push('scripts')
 <script>
 ArrRegister('referralDashboard', () => ({
         activeTab: 'instructions',
@@ -320,4 +322,4 @@ ArrRegister('referralDashboard', () => ({
         }
     }));
 </script>
-@endsection
+@endpush
