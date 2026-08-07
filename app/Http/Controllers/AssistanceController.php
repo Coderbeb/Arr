@@ -48,8 +48,21 @@ class AssistanceController extends Controller
                     'seller_screen_recording_url', 'seller_txn_screenshot_url', 'seller_profile_recording_url', 'seller_bank_statement_url'
                 ];
                 foreach ($urlFields as $field) {
-                    if (!empty($dispute->$field) && !str_starts_with($dispute->$field, 'http') && !str_starts_with($dispute->$field, '/storage/')) {
-                        $dispute->$field = '/storage/' . ltrim($dispute->$field, '/');
+                    if (!empty($dispute->$field)) {
+                        $url = $dispute->$field;
+                        // Already absolute or properly prefixed — leave alone
+                        if (str_starts_with($url, 'http') || str_starts_with($url, '/storage/')) {
+                            continue;
+                        }
+                        // Raw storage path like "proofs/seller_recording/file.mp4" — prefix with /storage/
+                        $dispute->$field = '/storage/' . ltrim($url, '/');
+                    }
+                }
+                // Also include the buyer's original payment screenshot from the trade
+                if ($dispute->trade && !empty($dispute->trade->buyer_payment_screenshot_url)) {
+                    $url = $dispute->trade->buyer_payment_screenshot_url;
+                    if (!str_starts_with($url, 'http') && !str_starts_with($url, '/storage/')) {
+                        $dispute->trade->buyer_payment_screenshot_url = '/storage/' . ltrim($url, '/');
                     }
                 }
                 return $dispute;

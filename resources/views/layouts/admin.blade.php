@@ -18,6 +18,42 @@
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
+    <!-- Smart Polling Utility -->
+    <script>
+        window.ArrPolling = {
+            _timers: {},
+            _visible: true,
+            init() {
+                document.addEventListener('visibilitychange', () => {
+                    this._visible = !document.hidden;
+                    Object.keys(this._timers).forEach(key => {
+                        const t = this._timers[key];
+                        if (this._visible && !t.active) {
+                            t.fn();
+                            t.id = setInterval(t.fn, t.interval);
+                            t.active = true;
+                        } else if (!this._visible && t.active) {
+                            clearInterval(t.id);
+                            t.active = false;
+                        }
+                    });
+                });
+            },
+            start(name, fn, intervalMs, immediate = true) {
+                if (this._timers[name]) this.stop(name);
+                if (immediate) fn();
+                const id = setInterval(fn, intervalMs);
+                this._timers[name] = { id, fn, interval: intervalMs, active: true };
+            },
+            stop(name) {
+                const t = this._timers[name];
+                if (t) { clearInterval(t.id); delete this._timers[name]; }
+            },
+            stopAll() { Object.keys(this._timers).forEach(k => this.stop(k)); }
+        };
+        ArrPolling.init();
+    </script>
+    
     <script>
         // Init theme
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -219,17 +255,17 @@
                         }
                     });
 
-                    // Start Real-Time Background Polling
-                    this.syncTimer = setInterval(async () => {
-                        this.isSyncing = true;
-                        if (this.activeTab === 'assistance') {
-                            await this.loadQueue(true);
-                        } else if (this.activeTab !== 'settings') {
-                            // Don't poll settings to avoid overwriting user input
-                            await this.loadAdminData(true);
+                    // Smart visibility-aware polling (pauses when tab is hidden)
+                    const self = this;
+                    ArrPolling.start('admin-sync', async () => {
+                        self.isSyncing = true;
+                        if (self.activeTab === 'assistance') {
+                            await self.loadQueue(true);
+                        } else if (self.activeTab !== 'settings') {
+                            await self.loadAdminData(true);
                         }
-                        setTimeout(() => this.isSyncing = false, 500); // Small delay to show sync indicator
-                    }, 5000);
+                        setTimeout(() => self.isSyncing = false, 500);
+                    }, 5000, false);
                 },
 
                 async loadAdminData(silent = false) {

@@ -595,11 +595,34 @@ class TradeController extends Controller
         $tradesData = [];
         foreach ($trades as $trade) {
              $tradeArr = $trade->toArray();
+
+             // Normalize proof URLs to ensure they start with /storage/
+             foreach (['buyer_payment_screenshot_url', 'payment_screenshot_url'] as $urlField) {
+                 if (!empty($tradeArr[$urlField])) {
+                     $tradeArr[$urlField] = $this->normalizeStorageUrl($tradeArr[$urlField]);
+                 }
+             }
+
              if ($trade->buyer_id === $user->id && $trade->order) {
                  $tradeArr['deepLinks'] = $this->upiService->generateUpiDeepLinks($trade->order->seller_upi_id, (float) $trade->amount, $trade->id);
              }
              if (in_array($trade->status, ['seller_rejected', 'disputed'])) {
-                 $tradeArr['dispute'] = Dispute::where('trade_id', $trade->id)->orderBy('created_at', 'desc')->first();
+                 $dispute = Dispute::where('trade_id', $trade->id)->orderBy('created_at', 'desc')->first();
+                 if ($dispute) {
+                     $disputeArr = $dispute->toArray();
+                     // Normalize all dispute proof URLs
+                     $proofFields = [
+                         'buyer_screenshot_url', 'buyer_screen_recording_url', 'buyer_bank_statement_url',
+                         'buyer_upi_screenshot_url', 'seller_screen_recording_url', 'seller_txn_screenshot_url',
+                         'seller_profile_recording_url', 'seller_bank_statement_url'
+                     ];
+                     foreach ($proofFields as $f) {
+                         if (!empty($disputeArr[$f])) {
+                             $disputeArr[$f] = $this->normalizeStorageUrl($disputeArr[$f]);
+                         }
+                     }
+                     $tradeArr['dispute'] = $disputeArr;
+                 }
              }
              $tradesData[] = $tradeArr;
         }
@@ -707,5 +730,16 @@ class TradeController extends Controller
                 event(new \App\Events\UserActivityUpdated($id));
             }
         }
+    }
+
+    /**
+     * Normalize a storage URL to ensure it starts with /storage/
+     */
+    private function normalizeStorageUrl(string $url): string
+    {
+        if (str_starts_with($url, 'http') || str_starts_with($url, '/storage/')) {
+            return $url;
+        }
+        return '/storage/' . ltrim($url, '/');
     }
 }

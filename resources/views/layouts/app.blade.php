@@ -23,20 +23,56 @@
     <!-- Alpine.js -->
     <script defer crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <!-- WebSockets -->
-    <script crossorigin="anonymous" src="https://js.pusher.com/8.0.1/pusher.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.min.js"></script>
+    <!-- Smart Polling Utility (replaces broken WebSocket) -->
     <script>
-        window.Pusher = Pusher;
-        window.Echo = new Echo({
-            broadcaster: 'reverb',
-            key: '{{ env("REVERB_APP_KEY") }}',
-            wsHost: '{{ env("REVERB_HOST") }}',
-            wsPort: {{ env("REVERB_PORT", 8080) }},
-            wssPort: {{ env("REVERB_PORT", 8080) }},
-            forceTLS: ({{ env("REVERB_SCHEME", "http") === "https" ? 'true' : 'false' }}),
-            enabledTransports: ['ws', 'wss'],
-        });
+        window.ArrPolling = {
+            _timers: {},
+            _visible: true,
+
+            init() {
+                document.addEventListener('visibilitychange', () => {
+                    this._visible = !document.hidden;
+                    Object.keys(this._timers).forEach(key => {
+                        const t = this._timers[key];
+                        if (this._visible && !t.active) {
+                            t.fn(); // Immediate refresh on tab focus
+                            t.id = setInterval(t.fn, t.interval);
+                            t.active = true;
+                        } else if (!this._visible && t.active) {
+                            clearInterval(t.id);
+                            t.active = false;
+                        }
+                    });
+                });
+            },
+
+            /**
+             * Register a polling function.
+             * @param {string} name - Unique identifier for this poller
+             * @param {Function} fn - Async function to call periodically
+             * @param {number} intervalMs - Polling interval in milliseconds
+             * @param {boolean} immediate - Whether to call fn immediately
+             */
+            start(name, fn, intervalMs, immediate = true) {
+                if (this._timers[name]) this.stop(name);
+                if (immediate) fn();
+                const id = setInterval(fn, intervalMs);
+                this._timers[name] = { id, fn, interval: intervalMs, active: true };
+            },
+
+            stop(name) {
+                const t = this._timers[name];
+                if (t) {
+                    clearInterval(t.id);
+                    delete this._timers[name];
+                }
+            },
+
+            stopAll() {
+                Object.keys(this._timers).forEach(k => this.stop(k));
+            }
+        };
+        ArrPolling.init();
     </script>
     
     <!-- Vite -->
@@ -212,5 +248,22 @@
     </div>
 
     @stack('scripts')
+
+    @auth
+    <script>
+        // Global navbar balance polling — keeps wallet display fresh on every page
+        document.addEventListener('alpine:init', () => {
+            ArrPolling.start('global-balance', async () => {
+                try {
+                    const res = await fetch('/api/wallet/balance');
+                    if (res.ok) {
+                        const data = await res.json();
+                        window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.wallet_balance }));
+                    }
+                } catch (e) {}
+            }, 5000, false); // Don't fire immediately — let page-specific init handle first load
+        });
+    </script>
+    @endauth
 </body>
 </html>

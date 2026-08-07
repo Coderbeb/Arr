@@ -13,6 +13,12 @@
     async init() {
         await this.loadWalletData();
         this.initialLoad = false;
+
+        // Smart polling every 5 seconds (visibility-aware)
+        const self = this;
+        ArrPolling.start('wallet-data', async () => {
+            await self.loadWalletData();
+        }, 5000, false);
     },
 
     async loadWalletData() {
@@ -22,6 +28,8 @@
             const balData = await balRes.json();
             this.balance = balData.wallet_balance;
             this.escrow = balData.escrow_balance;
+            // Keep navbar in sync
+            window.dispatchEvent(new CustomEvent('wallet-updated', { detail: balData.wallet_balance }));
 
             const txRes = await fetch('/api/wallet/transactions');
             this.transactions = await txRes.json();

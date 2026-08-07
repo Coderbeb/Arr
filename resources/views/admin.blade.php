@@ -521,6 +521,52 @@
                                         </a>
                                         <div x-show="!d.buyer_screenshot_url" class="flex items-center gap-3 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 opacity-60 grayscale"><span class="text-2xl">🖼️</span> <span class="text-gray-500 text-sm font-medium">No Screenshot Uploaded</span></div>
                                     </div>
+
+                                    <!-- Buyer's Original Payment Screenshot (from trade) -->
+                                    <template x-if="d.buyer_upi_screenshot_url || (d.trade && d.trade.buyer_payment_screenshot_url)">
+                                        <div class="mt-4 p-4 bg-green-50/50 dark:bg-green-500/5 rounded-2xl border border-green-100 dark:border-green-500/10">
+                                            <p class="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider mb-2">📱 Original Payment Proof</p>
+                                            <a :href="d.buyer_upi_screenshot_url || d.trade.buyer_payment_screenshot_url" target="_blank" class="block rounded-xl overflow-hidden border border-green-200 dark:border-green-500/20 hover:opacity-90 transition-opacity">
+                                                <img :src="d.buyer_upi_screenshot_url || d.trade.buyer_payment_screenshot_url" class="w-full max-h-48 object-contain bg-white dark:bg-black/20" alt="Original Payment Screenshot">
+                                            </a>
+                                            <template x-if="d.buyer_utr_number">
+                                                <p class="text-xs text-gray-600 dark:text-gray-400 mt-2">UTR: <span class="font-mono font-bold text-green-600 dark:text-green-400" x-text="d.buyer_utr_number"></span></p>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    
+                                    <!-- Buyer & Seller Info -->
+                                    <template x-if="d.trade">
+                                        <div class="mt-4 p-3 bg-gray-50 dark:bg-white/5 rounded-xl text-xs space-y-1">
+                                            <div class="flex justify-between"><span class="text-gray-500">Buyer:</span> <span class="font-bold text-gray-900 dark:text-white" x-text="d.trade.buyer ? d.trade.buyer.full_name : 'Unknown'"></span></div>
+                                            <div class="flex justify-between"><span class="text-gray-500">Seller:</span> <span class="font-bold text-gray-900 dark:text-white" x-text="d.trade.seller ? d.trade.seller.full_name : 'Unknown'"></span></div>
+                                        </div>
+                                    </template>
+                                    
+                                    <!-- AI Forensics Breakdown -->
+                                    <template x-if="d.buyer_ai_breakdown">
+                                        <div class="mt-4 p-4 bg-gray-100 dark:bg-black/30 rounded-xl border border-gray-200 dark:border-white/5">
+                                            <strong class="block text-xs text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">AI Forensics</strong>
+                                            <div class="space-y-1.5 text-sm text-gray-600 dark:text-gray-400">
+                                                <div class="flex justify-between"><span>Video:</span><strong x-text="(d.buyer_ai_breakdown.video_score || 0) + '%'"></strong></div>
+                                                <div class="flex justify-between"><span>PDF:</span><strong x-text="(d.buyer_ai_breakdown.pdf_score || 0) + '%'"></strong></div>
+                                                <div class="flex justify-between"><span>Image:</span><strong x-text="(d.buyer_ai_breakdown.image_score || 0) + '%'"></strong></div>
+                                            </div>
+                                            <template x-if="d.buyer_proof_analysis">
+                                                <div class="mt-2 space-y-1 text-xs">
+                                                    <template x-if="d.buyer_proof_analysis.video && d.buyer_proof_analysis.video.breakdown && d.buyer_proof_analysis.video.breakdown.fraud_flag">
+                                                        <div class="text-red-500 font-medium" x-text="'⚠️ Video: ' + d.buyer_proof_analysis.video.breakdown.fraud_flag"></div>
+                                                    </template>
+                                                    <template x-if="d.buyer_proof_analysis.pdf && d.buyer_proof_analysis.pdf.breakdown && d.buyer_proof_analysis.pdf.breakdown.fraud_flag">
+                                                        <div class="text-red-500 font-medium" x-text="'⚠️ PDF: ' + d.buyer_proof_analysis.pdf.breakdown.fraud_flag"></div>
+                                                    </template>
+                                                    <template x-if="d.buyer_proof_analysis.image && d.buyer_proof_analysis.image.breakdown && d.buyer_proof_analysis.image.breakdown.fraud_flag">
+                                                        <div class="text-red-500 font-medium" x-text="'⚠️ Image: ' + d.buyer_proof_analysis.image.breakdown.fraud_flag"></div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
                                 </div>
                                 <button class="w-full py-4 rounded-2xl font-black text-lg bg-green-50 text-green-600 hover:bg-green-500 hover:text-white dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500 dark:hover:text-white border border-green-200 dark:border-green-500/30 transition-all shadow-lg shadow-green-500/0 hover:shadow-green-500/20" x-show="d.assigned_to && (d.assigned_to.id === '{{ Auth::id() }}' || '{{ Auth::user()->role }}' === 'super_admin')" @click="resolveDispute(d.id, 'buyer')">
                                     🏆 Resolve: Buyer Wins
@@ -556,7 +602,31 @@
                                         </a>
                                         <div x-show="!d.seller_txn_screenshot_url" class="flex items-center gap-3 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 opacity-60 grayscale"><span class="text-2xl">🖼️</span> <span class="text-gray-500 text-sm font-medium">No Screenshot Uploaded</span></div>
                                     </div>
-                                </div>
+                                    
+                                    <!-- AI Forensics Breakdown -->
+                                    <template x-if="d.seller_ai_breakdown">
+                                        <div class="mt-4 p-4 bg-gray-100 dark:bg-black/30 rounded-xl border border-gray-200 dark:border-white/5">
+                                            <strong class="block text-xs text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">AI Forensics</strong>
+                                            <div class="space-y-1.5 text-sm text-gray-600 dark:text-gray-400">
+                                                <div class="flex justify-between"><span>Video:</span><strong x-text="(d.seller_ai_breakdown.video_score || 0) + '%'"></strong></div>
+                                                <div class="flex justify-between"><span>PDF:</span><strong x-text="(d.seller_ai_breakdown.pdf_score || 0) + '%'"></strong></div>
+                                                <div class="flex justify-between"><span>Image:</span><strong x-text="(d.seller_ai_breakdown.image_score || 0) + '%'"></strong></div>
+                                            </div>
+                                            <template x-if="d.seller_proof_analysis">
+                                                <div class="mt-2 space-y-1 text-xs">
+                                                    <template x-if="d.seller_proof_analysis.video && d.seller_proof_analysis.video.breakdown && d.seller_proof_analysis.video.breakdown.fraud_flag">
+                                                        <div class="text-red-500 font-medium" x-text="'⚠️ Video: ' + d.seller_proof_analysis.video.breakdown.fraud_flag"></div>
+                                                    </template>
+                                                    <template x-if="d.seller_proof_analysis.pdf && d.seller_proof_analysis.pdf.breakdown && d.seller_proof_analysis.pdf.breakdown.fraud_flag">
+                                                        <div class="text-red-500 font-medium" x-text="'⚠️ PDF: ' + d.seller_proof_analysis.pdf.breakdown.fraud_flag"></div>
+                                                    </template>
+                                                    <template x-if="d.seller_proof_analysis.image && d.seller_proof_analysis.image.breakdown && d.seller_proof_analysis.image.breakdown.fraud_flag">
+                                                        <div class="text-red-500 font-medium" x-text="'⚠️ Image: ' + d.seller_proof_analysis.image.breakdown.fraud_flag"></div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
                                 <button class="w-full py-4 rounded-2xl font-black text-lg bg-red-50 text-red-600 hover:bg-red-500 hover:text-white dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white border border-red-200 dark:border-red-500/30 transition-all shadow-lg shadow-red-500/0 hover:shadow-red-500/20" x-show="d.assigned_to && (d.assigned_to.id === '{{ Auth::id() }}' || '{{ Auth::user()->role }}' === 'super_admin')" @click="resolveDispute(d.id, 'seller')">
                                     🏆 Resolve: Seller Wins
                                 </button>

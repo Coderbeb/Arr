@@ -144,8 +144,33 @@
                                 </div>
                             </template>
                             <template x-if="trade.status === 'disputed'">
-                                <div class="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs md:text-sm font-bold p-2">
-                                    Disputed. Support team is reviewing the proofs.
+                                <div class="bg-red-50 dark:bg-red-500/10 p-3 rounded-lg border border-red-200 dark:border-red-500/20">
+                                    <p class="text-red-700 dark:text-red-400 text-xs md:text-sm font-bold mb-3">🛡️ Under Review — Support team is reviewing all proofs</p>
+                                    
+                                    <template x-if="trade.dispute">
+                                        <div class="space-y-3">
+                                            <!-- Seller's rejection proofs -->
+                                            <div>
+                                                <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Seller's Rejection Evidence</p>
+                                                <p class="text-[10px] text-gray-400 italic">Seller has submitted their evidence to the Support team.</p>
+                                            </div>
+                                            <!-- Buyer's own appeal proofs -->
+                                            <div>
+                                                <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Your Appeal Evidence</p>
+                                                <div class="grid grid-cols-3 gap-2">
+                                                    <template x-if="trade.dispute.buyer_screen_recording_url">
+                                                        <a :href="trade.dispute.buyer_screen_recording_url" target="_blank" class="flex items-center justify-center py-2 px-1 rounded-lg bg-white dark:bg-black/30 border border-green-200 dark:border-green-500/20 text-[10px] font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors">🎥 Video</a>
+                                                    </template>
+                                                    <template x-if="trade.dispute.buyer_bank_statement_url">
+                                                        <a :href="trade.dispute.buyer_bank_statement_url" target="_blank" class="flex items-center justify-center py-2 px-1 rounded-lg bg-white dark:bg-black/30 border border-green-200 dark:border-green-500/20 text-[10px] font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors">📄 PDF</a>
+                                                    </template>
+                                                    <template x-if="trade.dispute.buyer_screenshot_url">
+                                                        <a :href="trade.dispute.buyer_screenshot_url" target="_blank" class="flex items-center justify-center py-2 px-1 rounded-lg bg-white dark:bg-black/30 border border-green-200 dark:border-green-500/20 text-[10px] font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors">📸 Image</a>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
                         </div>
@@ -223,13 +248,53 @@
                                 </div>
                             </template>
                             <template x-if="trade.status === 'seller_rejected'">
-                                <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs md:text-sm font-bold p-2">
-                                    Dispute raised. Waiting for buyer to appeal with proofs...
+                                <div class="bg-amber-50 dark:bg-amber-500/10 p-3 rounded-lg border border-amber-200 dark:border-amber-500/20">
+                                    <p class="text-amber-700 dark:text-amber-400 text-xs md:text-sm font-bold mb-2">⏳ Dispute raised. Waiting for buyer to appeal with proofs...</p>
+                                    
+                                    <!-- Show buyer's original payment proof that was rejected -->
+                                    <template x-if="trade.buyer_payment_screenshot_url">
+                                        <div class="mt-3">
+                                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Buyer's Payment Proof (Rejected):</p>
+                                            <a :href="trade.buyer_payment_screenshot_url" target="_blank" class="block rounded-lg overflow-hidden border border-gray-200 dark:border-white/10 hover:opacity-90 transition-opacity">
+                                                <img :src="trade.buyer_payment_screenshot_url" class="w-full max-h-32 object-contain rounded-lg bg-black/5" alt="Buyer Payment Proof">
+                                            </a>
+                                            <p class="text-[10px] text-gray-500 mt-1">UTR: <span class="font-mono font-bold" x-text="trade.utr_number"></span></p>
+                                        </div>
+                                    </template>
+                                    
+                                    <!-- Show proof deadline timer -->
+                                    <template x-if="trade.dispute && trade.dispute.proof_deadline">
+                                        <p class="text-[10px] text-amber-600 dark:text-amber-400 mt-2">Buyer must appeal before: <span x-text="new Date(trade.dispute.proof_deadline).toLocaleString()"></span></p>
+                                    </template>
                                 </div>
                             </template>
                             <template x-if="trade.status === 'disputed'">
-                                <div class="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs md:text-sm font-bold p-2">
-                                    Disputed. Support team is reviewing the proofs.
+                                <div class="bg-red-50 dark:bg-red-500/10 p-3 rounded-lg border border-red-200 dark:border-red-500/20">
+                                    <p class="text-red-700 dark:text-red-400 text-xs md:text-sm font-bold mb-3">🛡️ Under Review — Support team is reviewing all proofs</p>
+                                    
+                                    <!-- Buyer's original payment proof -->
+                                    <template x-if="trade.buyer_payment_screenshot_url">
+                                        <div class="mb-3">
+                                            <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Buyer's Payment Proof</p>
+                                            <a :href="trade.buyer_payment_screenshot_url" target="_blank" class="block rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
+                                                <img :src="trade.buyer_payment_screenshot_url" class="w-full max-h-28 object-contain bg-black/5" alt="Payment Screenshot">
+                                            </a>
+                                            <p class="text-[10px] text-gray-500 mt-1">UTR: <span class="font-mono font-bold" x-text="trade.utr_number"></span></p>
+                                        </div>
+                                    </template>
+                                    
+                                    <!-- Buyer's appeal proofs -->
+                                    <template x-if="trade.dispute">
+                                        <div class="space-y-2 mt-2">
+                                            <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Buyer's Appeal Evidence</p>
+                                            <template x-if="trade.dispute.buyer_screen_recording_url">
+                                                <p class="text-[10px] text-gray-400 italic">Buyer has submitted their appeal evidence to the Support team.</p>
+                                            </template>
+                                            <template x-if="!trade.dispute.buyer_screen_recording_url">
+                                                <p class="text-[10px] text-gray-400 italic">Buyer hasn't submitted appeal proofs yet.</p>
+                                            </template>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
                         </div>
@@ -338,29 +403,22 @@
 
             async init() {
                 await this.loadActiveState();
-                if (window.Echo) {
-                    window.Echo.private('user.{{ Auth::id() }}')
-                        .listen('.user.activity', (e) => {
-                            this.loadActiveState();
-                        });
-                }
                 this.initialLoad = false;
                 
                 this.timerInterval = setInterval(() => {
                     this.updateTimers();
                 }, 1000);
 
+                // Smart polling every 3 seconds (visibility-aware, replaces broken WebSocket)
+                const self = this;
+                ArrPolling.start('live-orders', async () => {
+                    await self.loadActiveState();
+                }, 3000, false);
+
                 // Refresh when a new trade is created locally (e.g. from trade room)
                 window.addEventListener('trade-updated', () => {
                     this.loadActiveState();
                 });
-
-                if (window.Echo) {
-                    window.Echo.private(`user.{{ Auth::user()->id }}`)
-                        .listen('.trade:update', (e) => {
-                            this.loadActiveState();
-                        });
-                }
             },
 
             async loadActiveState() {

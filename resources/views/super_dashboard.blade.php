@@ -98,6 +98,7 @@
         Alpine.data('superDashboard', () => ({
             stats: {
                 wallet_balance: {{ Auth::user()->wallet_balance }},
+                escrow_balance: {{ Auth::user()->escrow_balance }},
             },
             mintAmount: '',
             loading: false,
@@ -113,6 +114,20 @@
                 const res = await fetch('/api/trade/amounts');
                 this.tradeAmounts = await res.json();
                 if (this.tradeAmounts.length > 0) this.selectedAmountId = this.tradeAmounts[0].id;
+
+                // Smart polling every 5 seconds (visibility-aware)
+                const self = this;
+                ArrPolling.start('super-balance', async () => {
+                    try {
+                        const balRes = await fetch('/api/wallet/balance');
+                        if (balRes.ok) {
+                            const data = await balRes.json();
+                            self.stats.wallet_balance = data.wallet_balance;
+                            self.stats.escrow_balance = data.escrow_balance;
+                            window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.wallet_balance }));
+                        }
+                    } catch (e) {}
+                }, 5000, false);
             },
 
             async generateCoins() {

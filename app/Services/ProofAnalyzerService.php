@@ -46,13 +46,13 @@ class ProofAnalyzerService
 
     public function analyzeProof(string $hash, string $mimeType, int $size, string $userId): array
     {
-        $score = 85;
+        $score = 5; // Default to highly suspicious
         $breakdown = [];
         
         // Find the file path from ProofFile
         $proofFile = \App\Models\ProofFile::where('file_hash', $hash)->first();
         if (!$proofFile) {
-            return ['score' => 50, 'breakdown' => ['error' => 'File not found for analysis'], 'is_duplicate' => false];
+            return ['score' => 5, 'breakdown' => ['error' => 'File not found for analysis'], 'is_duplicate' => false];
         }
 
         $filePath = storage_path('app/public/proofs/' . $proofFile->file_type . '/' . basename($proofFile->file_url));
@@ -62,20 +62,21 @@ class ProofAnalyzerService
 
         if (str_starts_with($mimeType, 'image/')) {
             $breakdown = [
-                'file_authenticity' => 90,
-                'metadata_validity' => 85,
+                'file_authenticity' => 10,
+                'metadata_validity' => 10,
                 'photoshop_tampering_risk' => 0,
-                'ai_generated_probability' => 0,
-                'visual_consistency' => 95,
+                'ai_generated_probability' => 50,
+                'visual_consistency' => 10,
             ];
 
             if (isset($fileInfo['error'])) {
-                $breakdown['photoshop_tampering_risk'] = 30; // Suspicious if cannot parse
+                $breakdown['photoshop_tampering_risk'] = 30; 
+                $score = 5;
             } else {
                 $software = strtolower($fileInfo['jpg']['exif']['IFD0']['Software'] ?? $fileInfo['png']['text']['Software'] ?? '');
                 $creator = strtolower($fileInfo['jpg']['exif']['IFD0']['Creator'] ?? '');
                 
-                $suspiciousKeywords = ['photoshop', 'canva', 'picsart', 'snapseed', 'lightroom', 'illustrator', 'coreldraw'];
+                $suspiciousKeywords = ['photoshop', 'canva', 'picsart', 'snapseed', 'lightroom', 'illustrator', 'coreldraw', 'midjourney', 'dall-e', 'stable diffusion'];
                 
                 $isEdited = false;
                 foreach ($suspiciousKeywords as $kw) {
@@ -87,20 +88,23 @@ class ProofAnalyzerService
 
                 if ($isEdited) {
                     $breakdown['photoshop_tampering_risk'] = 95;
-                    $breakdown['file_authenticity'] = 10;
+                    $breakdown['file_authenticity'] = 5;
                     $breakdown['fraud_flag'] = 'Editing software signature detected: ' . $software;
+                    $score = 5;
+                } else {
+                    $score = 15; // Images without verifiable source get very low scores
                 }
             }
-            $score = 100 - $breakdown['photoshop_tampering_risk'] - $breakdown['ai_generated_probability'];
         } elseif (str_starts_with($mimeType, 'video/')) {
             $breakdown = [
-                'screen_recording_authenticity' => 85,
-                'frame_consistency' => 90,
+                'screen_recording_authenticity' => 10,
+                'frame_consistency' => 10,
                 'downloaded_signature_risk' => 0,
             ];
 
             if (isset($fileInfo['error'])) {
-                $breakdown['downloaded_signature_risk'] = 30;
+                $breakdown['downloaded_signature_risk'] = 50;
+                $score = 5;
             } else {
                 $encoder = strtolower($fileInfo['video']['encoder'] ?? $fileInfo['quicktime']['moov']['subatoms'][0]['major_brand'] ?? '');
                 
@@ -116,18 +120,21 @@ class ProofAnalyzerService
                 
                 if ($isEdited) {
                     $breakdown['downloaded_signature_risk'] = 90;
-                    $breakdown['screen_recording_authenticity'] = 20;
+                    $breakdown['screen_recording_authenticity'] = 5;
                     $breakdown['fraud_flag'] = 'Non-native or edited video encoder detected';
+                    $score = 5;
                 } elseif ($encoder === 'qt  ' || $encoder === 'isom' || str_contains($encoder, 'apple')) {
                     // Likely native mobile screen recording
                     $breakdown['screen_recording_authenticity'] = 98;
+                    $score = 85;
+                } else {
+                    $score = 10;
                 }
             }
-            $score = $breakdown['screen_recording_authenticity'] - ($breakdown['downloaded_signature_risk'] / 2);
         } elseif ($mimeType === 'application/pdf') {
             $breakdown = [
-                'pdf_metadata_validity' => 90,
-                'bank_signature_presence' => 80,
+                'pdf_metadata_validity' => 10,
+                'bank_signature_presence' => 0,
                 'modification_risk' => 0,
             ];
 
@@ -140,7 +147,7 @@ class ProofAnalyzerService
                 $producer = strtolower($details['Producer'] ?? '');
                 $creator = strtolower($details['Creator'] ?? '');
                 
-                $suspicious = ['itext', 'canva', 'illustrator', 'photoshop', 'word', 'pdf24'];
+                $suspicious = ['itext', 'canva', 'illustrator', 'photoshop', 'word', 'pdf24', 'chromium'];
                 $isEdited = false;
                 foreach ($suspicious as $kw) {
                     if (str_contains($producer, $kw) || str_contains($creator, $kw)) {
@@ -151,33 +158,35 @@ class ProofAnalyzerService
                 
                 if ($isEdited) {
                     $breakdown['modification_risk'] = 90;
-                    $breakdown['pdf_metadata_validity'] = 20;
+                    $breakdown['pdf_metadata_validity'] = 5;
                     $breakdown['fraud_flag'] = 'PDF generated by non-banking software';
-                }
-                
-                // Keyword check
-                $keywords = ['utr', 'upi', 'transfer', 'balance', 'credit', 'debit', 'transaction', 'ref', 'reference', 'rupees', 'rs'];
-                $found = 0;
-                foreach ($keywords as $kw) {
-                    if (str_contains($text, $kw)) {
-                        $found++;
-                    }
-                }
-                
-                if ($found < 2) {
-                    $breakdown['bank_signature_presence'] = 10; // Probably fake or generic document
-                    $breakdown['fraud_flag'] = 'Missing financial text signatures in PDF';
+                    $score = 5;
                 } else {
-                    $breakdown['bank_signature_presence'] = 95;
+                    // Keyword check
+                    $keywords = ['utr', 'upi', 'transfer', 'balance', 'credit', 'debit', 'transaction', 'ref', 'reference', 'rupees', 'rs', 'paid', 'successful'];
+                    $found = 0;
+                    foreach ($keywords as $kw) {
+                        if (str_contains($text, $kw)) {
+                            $found++;
+                        }
+                    }
+                    
+                    if ($found < 2) {
+                        $breakdown['bank_signature_presence'] = 5;
+                        $breakdown['fraud_flag'] = 'Missing financial text signatures in PDF';
+                        $score = 5;
+                    } else {
+                        $breakdown['bank_signature_presence'] = 95;
+                        $score = min(95, 20 + ($found * 10));
+                    }
                 }
                 
             } catch (\Exception $e) {
                 // If it can't parse, might be an image wrapped in PDF
                 $breakdown['modification_risk'] = 50;
                 $breakdown['bank_signature_presence'] = 0;
+                $score = 5;
             }
-            
-            $score = (($breakdown['pdf_metadata_validity'] + $breakdown['bank_signature_presence']) / 2) - $breakdown['modification_risk'];
         }
 
         $score = max(0, min(100, (int) $score));

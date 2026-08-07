@@ -100,18 +100,13 @@
             async init() {
                 this.loadStats();
                 
-                // Listen to websocket
-                if (window.Echo) {
-                    window.Echo.private('user.{{ Auth::id() }}')
-                        .listen('.user.activity', (e) => {
-                            this.loadStats();
-                        })
-                        .listen('.trade:update', (e) => {
-                            this.loadStats();
-                        });
-                }
+                // Smart polling every 3 seconds (visibility-aware)
+                const self = this;
+                ArrPolling.start('dashboard-stats', async () => {
+                    await self.loadStats();
+                }, 3000, false);
 
-                // Listen to local actions
+                // Listen to local actions (instant feedback for same-page actions)
                 window.addEventListener('trade-updated', () => {
                     this.loadStats();
                 });
@@ -125,6 +120,8 @@
                         this.stats.wallet_balance = data.wallet_balance;
                         this.stats.escrow_balance = data.escrow_balance;
                         this.stats.total_trades = data.total_trades;
+                        // Also update navbar balance
+                        window.dispatchEvent(new CustomEvent('wallet-updated', { detail: data.wallet_balance }));
                     }
                 } catch (e) {
                     console.error("Failed to load dashboard stats", e);
