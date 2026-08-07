@@ -37,6 +37,7 @@ class Dispute extends Model
         'seller_proof_submitted_at',
         'ai_recommendation',
         'ai_confidence',
+        'assigned_to',
         'resolved_by',
         'resolution_notes',
         'resolved_at',
@@ -75,5 +76,10 @@ class Dispute extends Model
     public function resolvedBy()
     {
         return $this->belongsTo(User::class, 'resolved_by');
+    }
+
+    public function assignedTo()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 }

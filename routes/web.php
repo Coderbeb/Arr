@@ -45,6 +45,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin', function () {
         return view('admin');
     })->name('admin');
+
+    Route::get('/super-dashboard', function () {
+        if (Auth::user()->role !== 'super_account') {
+            return redirect()->route('dashboard');
+        }
+        return view('super_dashboard');
+    })->name('super_dashboard');
 });
 
 // --------------------------------------------------------
@@ -92,11 +99,13 @@ Route::prefix('api')->group(function () {
 
     Route::prefix('assistance')->middleware('auth')->group(function () {
         Route::get('/queue', [\App\Http\Controllers\AssistanceController::class, 'queue']);
+        Route::post('/claim/{dispute_id}', [\App\Http\Controllers\AssistanceController::class, 'claim']);
         Route::post('/resolve/{dispute_id}', [\App\Http\Controllers\AssistanceController::class, 'resolve']);
     });
 
     Route::prefix('admin')->middleware('auth')->group(function () {
         Route::get('/analytics', [\App\Http\Controllers\AdminController::class, 'analytics']);
+        Route::post('/super-account', [\App\Http\Controllers\AdminController::class, 'createSuperAccount']);
         Route::post('/staff/create', [\App\Http\Controllers\AdminController::class, 'createStaff']);
         Route::post('/users/{user_id}/wallet-adjust', [\App\Http\Controllers\AdminController::class, 'adjustWallet']);
         
@@ -111,5 +120,9 @@ Route::prefix('api')->group(function () {
     Route::prefix('referrals')->middleware('auth')->group(function () {
         Route::get('/', [\App\Http\Controllers\ReferralController::class, 'index']);
         Route::post('/claim', [\App\Http\Controllers\ReferralController::class, 'claim']);
+    });
+
+    Route::prefix('super-account')->middleware('auth')->group(function () {
+        Route::post('/generate-coins', [\App\Http\Controllers\SuperAccountController::class, 'generateCoins']);
     });
 });

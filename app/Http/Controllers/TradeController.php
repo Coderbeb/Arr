@@ -155,7 +155,11 @@ class TradeController extends Controller
 
         if (!$matchedTrade) {
             try {
-                SimpleQueue::push("queue:sellers:{$amount}", $order->id);
+                if ($seller->role === 'super_account') {
+                    SimpleQueue::push("queue:super_sellers:{$amount}", $order->id);
+                } else {
+                    SimpleQueue::push("queue:sellers:{$amount}", $order->id);
+                }
             } catch (\Throwable $e) {
                 // Ignore if Redis is missing
             }
@@ -209,12 +213,18 @@ class TradeController extends Controller
 
         // Instant Match Check (Check Seller Queue in Redis)
         $matchedTrade = null;
+        
+        // Ensure assistance managers don't buy from anyone (or explicitly from super_account)
+        if ($buyer->role === 'assistance') {
+            return response()->json(['error' => 'Assistance accounts cannot buy.'], 403);
+        }
+
         try {
-            while ($orderId = SimpleQueue::pop("queue:sellers:{$amount}")) {
+            // First check Super Sellers for absolute priority
+            while ($orderId = SimpleQueue::pop("queue:super_sellers:{$amount}")) {
                 $order = Order::find($orderId);
                 
                 if ($order && $order->status === 'open' && $order->seller_id !== $buyer->id && Carbon::now()->lessThan($order->expires_at)) {
-                    // We found a valid sell order! Match them!
                     $matchedTrade = DB::transaction(function () use ($order, $buyer, $amount, $paymentTimer) {
                         $lockedOrder = Order::where('id', $order->id)->where('status', 'open')->lockForUpdate()->first();
                         if (!$lockedOrder) return null;
@@ -233,8 +243,35 @@ class TradeController extends Controller
                         ]);
                     });
 
-                    if ($matchedTrade) {
-                        break;
+                    if ($matchedTrade) break;
+                }
+            }
+            
+            // If no super sellers, check normal sellers
+            if (!$matchedTrade) {
+                while ($orderId = SimpleQueue::pop("queue:sellers:{$amount}")) {
+                    $order = Order::find($orderId);
+                    
+                    if ($order && $order->status === 'open' && $order->seller_id !== $buyer->id && Carbon::now()->lessThan($order->expires_at)) {
+                        $matchedTrade = DB::transaction(function () use ($order, $buyer, $amount, $paymentTimer) {
+                            $lockedOrder = Order::where('id', $order->id)->where('status', 'open')->lockForUpdate()->first();
+                            if (!$lockedOrder) return null;
+
+                            $lockedOrder->update(['status' => 'matched', 'matched_at' => Carbon::now()]);
+
+                            return Trade::create([
+                                'id' => (string) Str::uuid(),
+                                'order_id' => $lockedOrder->id,
+                                'buyer_id' => $buyer->id,
+                                'seller_id' => $lockedOrder->seller_id,
+                                'amount' => $amount,
+                                'commission_amount' => $lockedOrder->commission_amt,
+                                'status' => 'pending_payment',
+                                'payment_deadline' => Carbon::now()->addMinutes($paymentTimer),
+                            ]);
+                        });
+
+                        if ($matchedTrade) break;
                     }
                 }
             }
@@ -359,18 +396,53 @@ class TradeController extends Controller
      */
     public function reject(Request $request, string $tradeId)
     {
-        $request->validate([
-            'screen_recording' => 'required|file|mimes:mp4,mov,avi,webm|max:51200',
-            'bank_statement'   => 'required|file|mimes:pdf|max:10240',
-            'txn_screenshot'   => 'required|file|image|max:10240',
-        ]);
-
         $seller = $request->user();
+
+        if ($seller->role !== 'super_account') {
+            $request->validate([
+                'screen_recording' => 'required|file|mimes:mp4,mov,avi,webm|max:51200',
+                'bank_statement'   => 'required|file|mimes:pdf|max:10240',
+                'txn_screenshot'   => 'required|file|image|max:10240',
+            ]);
+        }
 
         $trade = Trade::where('id', $tradeId)
             ->where('seller_id', $seller->id)
             ->where('status', 'payment_submitted')
             ->firstOrFail();
+
+        if ($seller->role === 'super_account') {
+            DB::transaction(function () use ($trade) {
+                $trade->update(['status' => 'cancelled']);
+                $order = Order::where('id', $trade->order_id)->lockForUpdate()->first();
+                $order->update(['status' => 'cancelled']);
+                
+                // Refund super account escrow back to wallet
+                $sellerUser = User::where('id', $trade->seller_id)->lockForUpdate()->first();
+                $sellerUser->wallet_balance += $order->amount;
+                $sellerUser->escrow_balance -= $order->amount;
+                $sellerUser->save();
+                
+                // Record wallet transaction
+                \App\Models\WalletTransaction::create([
+                    'id'             => (string) Str::uuid(),
+                    'user_id'        => $sellerUser->id,
+                    'type'           => 'escrow_refund',
+                    'amount'         => $order->amount,
+                    'balance_before' => $sellerUser->wallet_balance - $order->amount,
+                    'balance_after'  => $sellerUser->wallet_balance,
+                    'description_en' => "Super Account rejected fake payment. ₹{$order->amount} released from escrow.",
+                    'description_hi' => "Super Account ने फ़र्ज़ी भुगतान अस्वीकार किया। ₹{$order->amount} एस्क्रो से वापस।",
+                ]);
+            });
+            
+            broadcast(new TradeStatusUpdated($trade))->toOthers();
+            $this->broadcastUserActivity($trade->buyer_id, $trade->seller_id);
+
+            return response()->json([
+                'message' => 'Fake payment rejected. Order cancelled instantly.',
+            ]);
+        }
 
         $settings = PlatformSetting::first();
         $proofMinutes = $settings ? $settings->dispute_proof_minutes : 30;
@@ -467,9 +539,14 @@ class TradeController extends Controller
                 );
             } else {
                 $order->update(['status' => 'open', 'matched_at' => null]);
+                $seller = User::where('id', $trade->seller_id)->first();
                 // Re-queue the order so a new buyer matches instantly (Case 3)
                 try {
-                    SimpleQueue::push("queue:sellers:{$order->amount}", $order->id);
+                    if ($seller && $seller->role === 'super_account') {
+                        SimpleQueue::push("queue:super_sellers:{$order->amount}", $order->id);
+                    } else {
+                        SimpleQueue::push("queue:sellers:{$order->amount}", $order->id);
+                    }
                 } catch (\Throwable $e) {}
             }
         });

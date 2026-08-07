@@ -27,7 +27,7 @@
         }
     </script>
 </head>
-<body class="bg-gray-50 dark:bg-deep-900 text-gray-900 dark:text-gray-100 font-sans antialiased selection:bg-gold-500/30 min-h-screen flex flex-col" x-data="adminApp()">
+<body class="bg-gray-50 dark:bg-deep-900 text-gray-900 dark:text-gray-100 font-sans antialiased selection:bg-gold-500/30 h-[100dvh] overflow-hidden flex flex-col" x-data="adminApp()">
     
     @if(isset($global_announcement) && !empty($global_announcement))
         <div class="bg-amber-500 text-black text-center py-2 px-4 font-semibold text-sm relative z-50 animate-fade-in">
@@ -94,7 +94,10 @@
         <div class="flex-1 flex flex-col h-screen overflow-hidden">
             <!-- Mobile Header (Compact) -->
             <header class="lg:hidden flex items-center justify-between p-3 bg-white/95 dark:bg-deep-900/95 backdrop-blur-md border-b border-gray-200 dark:border-white/10 z-30">
-                <div class="font-outfit font-bold text-lg text-gold-500 flex items-center gap-1">🪙 Arr Admin</div>
+                <div class="font-outfit font-bold text-lg text-gold-500 flex items-center gap-1">
+                    🪙 Arr Admin
+                    <div x-show="isSyncing" class="ml-2 w-2 h-2 rounded-full bg-green-500 animate-ping" title="Syncing data..."></div>
+                </div>
                 <div class="flex items-center gap-3">
                     <button @click="toggleTheme()" class="p-1.5 text-gray-500 dark:text-gray-400">
                         <span x-show="!isDark">🌙</span>
@@ -106,39 +109,54 @@
                 </div>
             </header>
             
-            <main class="flex-1 overflow-y-auto p-4 lg:p-8 relative">
+            <main class="flex-1 overflow-y-auto p-4 pb-40 lg:p-8 lg:pb-8 relative">
                 <!-- Fluid Morph Animation Background -->
                 <div class="fluid-morph absolute -top-40 -left-40 w-96 h-96 bg-gold-400/10 rounded-full blur-3xl pointer-events-none"></div>
                 <div class="fluid-morph absolute top-40 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" style="animation-delay: -2s;"></div>
                 
                 <div class="relative z-10 max-w-7xl mx-auto">
                     @yield('content')
+                    
+                    <!-- Mobile Navigation Spacer -->
+                    <div class="h-48 lg:hidden w-full shrink-0"></div>
                 </div>
             </main>
         </div>
     </div>
 
-    <!-- Mobile Bottom Navigation Bar -->
-    <nav class="lg:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-deep-900 border-t border-gray-200 dark:border-white/10 pb-safe z-50 flex justify-around items-center px-1 py-2">
-        <button class="flex flex-col items-center gap-1 p-1 flex-1 transition-colors" :class="activeTab === 'analytics' ? 'text-gold-500' : 'text-gray-500 dark:text-gray-400'" @click="activeTab = 'analytics'">
-            <span class="text-xl">📈</span>
-            <span class="text-[10px] font-bold tracking-wide">Data</span>
+    <!-- Premium Mobile Bottom Navigation Bar (Floating Pill) -->
+    <nav class="lg:hidden fixed bottom-6 left-4 right-4 bg-white/80 dark:bg-deep-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-white/10 rounded-2xl shadow-2xl z-50 flex justify-around items-center p-2">
+        <button class="relative flex flex-col items-center gap-1 p-2 flex-1 transition-all duration-300 rounded-xl" 
+            :class="activeTab === 'analytics' ? 'bg-gold-500/10 text-gold-500 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'" 
+            @click="activeTab = 'analytics'">
+            <span class="text-xl" :class="activeTab === 'analytics' ? 'animate-bounce' : ''">📈</span>
+            <span class="text-[10px] font-black tracking-wide">Data</span>
         </button>
-        <button class="flex flex-col items-center gap-1 p-1 flex-1 transition-colors" :class="activeTab === 'users' ? 'text-gold-500' : 'text-gray-500 dark:text-gray-400'" @click="activeTab = 'users'">
-            <span class="text-xl">👥</span>
-            <span class="text-[10px] font-bold tracking-wide">Users</span>
+        <button class="relative flex flex-col items-center gap-1 p-2 flex-1 transition-all duration-300 rounded-xl" 
+            :class="activeTab === 'users' ? 'bg-indigo-500/10 text-indigo-500 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'" 
+            @click="activeTab = 'users'">
+            <span class="text-xl" :class="activeTab === 'users' ? 'animate-bounce' : ''">👥</span>
+            <span class="text-[10px] font-black tracking-wide">Users</span>
         </button>
-        <button class="flex flex-col items-center gap-1 p-1 flex-1 transition-colors" :class="activeTab === 'settings' ? 'text-gold-500' : 'text-gray-500 dark:text-gray-400'" @click="activeTab = 'settings'">
-            <span class="text-xl">⚙️</span>
-            <span class="text-[10px] font-bold tracking-wide">Config</span>
+        <button class="relative flex flex-col items-center gap-1 p-2 flex-1 transition-all duration-300 rounded-xl" 
+            :class="activeTab === 'settings' ? 'bg-emerald-500/10 text-emerald-500 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'" 
+            @click="activeTab = 'settings'">
+            <span class="text-xl" :class="activeTab === 'settings' ? 'animate-bounce' : ''">⚙️</span>
+            <span class="text-[10px] font-black tracking-wide">Config</span>
         </button>
-        <button class="flex flex-col items-center gap-1 p-1 flex-1 transition-colors" :class="activeTab === 'assistance' ? 'text-gold-500' : 'text-gray-500 dark:text-gray-400'" @click="activeTab = 'assistance'">
-            <span class="text-xl">🛡️</span>
-            <span class="text-[10px] font-bold tracking-wide">Support</span>
+        <button class="relative flex flex-col items-center gap-1 p-2 flex-1 transition-all duration-300 rounded-xl" 
+            :class="activeTab === 'assistance' ? 'bg-amber-500/10 text-amber-500 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'" 
+            @click="activeTab = 'assistance'">
+            <span class="text-xl" :class="activeTab === 'assistance' ? 'animate-bounce' : ''">🛡️</span>
+            <span class="text-[10px] font-black tracking-wide">Support</span>
+            <!-- Red dot for active disputes -->
+            <span x-show="disputes.length > 0" class="absolute top-1 right-2 w-2 h-2 rounded-full bg-red-500 border border-white dark:border-deep-900"></span>
         </button>
-        <button class="flex flex-col items-center gap-1 p-1 flex-1 transition-colors" :class="activeTab === 'logs' ? 'text-gold-500' : 'text-gray-500 dark:text-gray-400'" @click="activeTab = 'logs'">
-            <span class="text-xl">📜</span>
-            <span class="text-[10px] font-bold tracking-wide">Logs</span>
+        <button class="relative flex flex-col items-center gap-1 p-2 flex-1 transition-all duration-300 rounded-xl" 
+            :class="activeTab === 'logs' ? 'bg-purple-500/10 text-purple-500 scale-105' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'" 
+            @click="activeTab = 'logs'">
+            <span class="text-xl" :class="activeTab === 'logs' ? 'animate-bounce' : ''">📜</span>
+            <span class="text-[10px] font-black tracking-wide">Logs</span>
         </button>
     </nav>
 
@@ -171,6 +189,9 @@
 
                 showWalletModal: false,
                 walletForm: { user_id: '', full_name: '', action: 'add', amount: '', note: '' },
+                
+                showSuperAccountModal: false,
+                superAccountForm: { full_name: '', mobile_number: '', password: '' },
 
                 toggleTheme() {
                     this.isDark = !this.isDark;
@@ -183,6 +204,9 @@
                     }
                 },
 
+                syncTimer: null,
+                isSyncing: false,
+
                 async init() {
                     await this.loadAdminData();
                     
@@ -194,12 +218,26 @@
                             await this.loadAdminData();
                         }
                     });
+
+                    // Start Real-Time Background Polling
+                    this.syncTimer = setInterval(async () => {
+                        this.isSyncing = true;
+                        if (this.activeTab === 'assistance') {
+                            await this.loadQueue(true);
+                        } else if (this.activeTab !== 'settings') {
+                            // Don't poll settings to avoid overwriting user input
+                            await this.loadAdminData(true);
+                        }
+                        setTimeout(() => this.isSyncing = false, 500); // Small delay to show sync indicator
+                    }, 5000);
                 },
 
-                async loadAdminData() {
-                    this.loading = true;
-                    this.errorMsg = '';
-                    this.message = '';
+                async loadAdminData(silent = false) {
+                    if (!silent) {
+                        this.loading = true;
+                        this.errorMsg = '';
+                        this.message = '';
+                    }
                     try {
                         const [setRes, userRes, logRes, analyticsRes] = await Promise.all([
                             fetch('/api/admin/settings'),
@@ -212,7 +250,10 @@
                         if(settingsData && settingsData.id) {
                             settingsData.registration_open = settingsData.registration_open ? 1 : 0;
                             settingsData.global_announcement = settingsData.global_announcement || '';
-                            this.settings = settingsData;
+                            // Only update settings if we're not silently polling, to avoid overwriting form inputs
+                            if (!silent) {
+                                this.settings = settingsData;
+                            }
                         }
                         
                         const userData = await userRes.json();
@@ -221,21 +262,21 @@
                         this.auditLogs = await logRes.json();
                         this.analytics = await analyticsRes.json();
                     } catch (e) {
-                        this.errorMsg = 'Failed to load admin data.';
+                        if (!silent) this.errorMsg = 'Failed to load admin data.';
                     } finally {
-                        this.loading = false;
+                        if (!silent) this.loading = false;
                     }
                 },
 
-                async loadQueue() {
-                    this.loading = true;
+                async loadQueue(silent = false) {
+                    if (!silent) this.loading = true;
                     try {
                         const res = await fetch('/api/assistance/queue');
                         this.disputes = await res.json();
                     } catch (e) {
-                        this.errorMsg = 'Failed to load support queue.';
+                        if (!silent) this.errorMsg = 'Failed to load support queue.';
                     } finally {
-                        this.loading = false;
+                        if (!silent) this.loading = false;
                     }
                 },
 
@@ -337,6 +378,38 @@
                     }
                 },
 
+                async createSuperAccount() {
+                    this.message = '';
+                    this.errorMsg = '';
+                    this.loading = true;
+                    try {
+                        const res = await fetch('/api/admin/super-account', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify(this.superAccountForm)
+                        });
+                        const data = await res.json();
+                        if (!res.ok) {
+                            let msg = data.error || data.message || 'Failed to create Super Account';
+                            if (data.errors) msg = Object.values(data.errors).flat().join(', ');
+                            this.errorMsg = msg;
+                        } else {
+                            this.message = 'Super Account created successfully!';
+                            this.showSuperAccountModal = false;
+                            this.superAccountForm = { full_name: '', mobile_number: '', password: '' };
+                            await this.loadAdminData();
+                        }
+                    } catch (e) {
+                        this.errorMsg = 'Network error.';
+                    } finally {
+                        this.loading = false;
+                        setTimeout(() => this.message = this.errorMsg = '', 4000);
+                    }
+                },
+
                 openWalletModal(u) {
                     this.walletForm = { user_id: u.id, full_name: u.full_name, action: 'add', amount: '', note: '' };
                     this.showWalletModal = true;
@@ -373,6 +446,29 @@
                     }
                 },
 
+                async claimDispute(disputeId) {
+                    try {
+                        const res = await fetch(`/api/assistance/claim/${disputeId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            }
+                        });
+                        const data = await res.json();
+                        if (!res.ok) {
+                            this.errorMsg = data.message || 'Failed to claim dispute';
+                        } else {
+                            this.message = 'Dispute claimed successfully!';
+                            await this.loadQueue();
+                        }
+                    } catch (e) {
+                        this.errorMsg = 'Network error while claiming dispute.';
+                    } finally {
+                        setTimeout(() => this.message = this.errorMsg = '', 4000);
+                    }
+                },
+
                 async resolveDispute(disputeId, winner) {
                     if (!confirm(`Are you sure you want to resolve in favor of ${winner.toUpperCase()}?`)) return;
                     try {
@@ -385,8 +481,12 @@
                             body: JSON.stringify({ winner: winner, notes: 'Resolved by super admin' })
                         });
                         const data = await res.json();
-                        this.message = data.message;
-                        await this.loadQueue();
+                        if (!res.ok) {
+                            this.errorMsg = data.message || 'Failed to resolve dispute';
+                        } else {
+                            this.message = data.message;
+                            await this.loadQueue();
+                        }
                     } catch (e) {
                         this.errorMsg = 'Failed to resolve dispute.';
                     } finally {

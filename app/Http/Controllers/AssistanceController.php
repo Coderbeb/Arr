@@ -37,7 +37,8 @@ class AssistanceController extends Controller
                 'trade',
                 'trade.buyer:id,full_name,mobile_number',
                 'trade.seller:id,full_name,mobile_number',
-                'raisedBy:id,full_name'
+                'raisedBy:id,full_name',
+                'assignedTo:id,full_name'
             ])
             ->orderBy('created_at', 'asc')
             ->get()
@@ -58,6 +59,42 @@ class AssistanceController extends Controller
     }
 
     /**
+     * POST /api/assistance/claim/{dispute_id}
+     */
+    public function claim(Request $request, string $disputeId)
+    {
+        $admin = $request->user();
+        if (!in_array($admin->role, ['assistance', 'super_admin'])) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $dispute = Dispute::where('id', $disputeId)
+            ->whereIn('status', ['pending', 'under_review', 'escalated'])
+            ->firstOrFail();
+
+        if ($dispute->assigned_to && $dispute->assigned_to !== $admin->id && $admin->role !== 'super_admin') {
+            return response()->json(['error' => 'This dispute is already assigned to someone else.'], 400);
+        }
+
+        $dispute->update([
+            'assigned_to' => $admin->id,
+            'status' => 'under_review',
+        ]);
+
+        AdminAuditLog::create([
+            'id'          => (string) Str::uuid(),
+            'admin_id'    => $admin->id,
+            'action'      => "claim_dispute",
+            'target_type' => 'dispute',
+            'target_id'   => $dispute->id,
+            'notes'       => "Claimed dispute for review",
+            'created_at'  => Carbon::now(),
+        ]);
+
+        return response()->json(['message' => 'Dispute claimed successfully.', 'dispute' => $dispute]);
+    }
+
+    /**
      * POST /api/assistance/resolve/{dispute_id}
      */
     public function resolve(Request $request, string $disputeId)
@@ -75,6 +112,10 @@ class AssistanceController extends Controller
         $dispute = Dispute::where('id', $disputeId)
             ->whereIn('status', ['pending', 'under_review', 'escalated'])
             ->firstOrFail();
+
+        if ($dispute->assigned_to !== $admin->id && $admin->role !== 'super_admin') {
+            return response()->json(['error' => 'You must claim this dispute before resolving it, or it is assigned to someone else.'], 403);
+        }
 
         $trade = Trade::where('id', $dispute->trade_id)->firstOrFail();
 

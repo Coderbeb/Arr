@@ -165,6 +165,46 @@ class AdminController extends Controller
     }
 
     /**
+     * POST /api/admin/super-account
+     */
+    public function createSuperAccount(Request $request)
+    {
+        $admin = $request->user();
+        if ($admin->role !== 'super_admin') {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $request->validate([
+            'mobile_number' => 'required|string|unique:users',
+            'full_name'     => 'required|string|max:100',
+            'password'      => 'required|string|min:6',
+        ]);
+
+        $user = User::create([
+            'id'            => (string) Str::uuid(),
+            'mobile_number' => $request->mobile_number,
+            'full_name'     => $request->full_name,
+            'password_hash' => Hash::make($request->password),
+            'role'          => 'super_account',
+            'status'        => 'active',
+            'date_of_birth' => '2000-01-01',
+            'upi_id'        => 'super@upi',
+            'wallet_balance'=> 0,
+        ]);
+
+        AdminAuditLog::create([
+            'id'          => (string) Str::uuid(),
+            'admin_id'    => $admin->id,
+            'action'      => 'create_super_account',
+            'target_type' => 'user',
+            'target_id'   => $user->id,
+            'created_at'  => Carbon::now(),
+        ]);
+
+        return response()->json(['message' => 'Super Account created successfully']);
+    }
+
+    /**
      * POST /api/admin/users/{user_id}/wallet-adjust
      */
     public function adjustWallet(Request $request, string $userId)
@@ -265,18 +305,31 @@ class AdminController extends Controller
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
-        $totalUsers = User::count();
-        $activeUsers = User::where('status', 'active')->count();
-        $suspendedUsers = User::where('status', 'suspended')->count();
-        $bannedUsers = User::where('status', 'banned')->count();
+        $totalUsers = User::where('role', '!=', 'super_account')->count();
+        $activeUsers = User::where('status', 'active')->where('role', '!=', 'super_account')->count();
+        $suspendedUsers = User::where('status', 'suspended')->where('role', '!=', 'super_account')->count();
+        $bannedUsers = User::where('status', 'banned')->where('role', '!=', 'super_account')->count();
 
-        $totalLiquidity = (float) User::sum('escrow_balance');
-        $totalWalletBalance = (float) User::sum('wallet_balance');
-        $totalCommission = (float) Trade::where('status', 'completed')->sum('commission_amount');
+        $totalLiquidity = (float) User::where('role', '!=', 'super_account')->sum('escrow_balance');
+        $totalWalletBalance = (float) User::where('role', '!=', 'super_account')->sum('wallet_balance');
+        
+        $superAccountIds = User::where('role', 'super_account')->pluck('id')->toArray();
 
-        $activeTrades = Trade::whereIn('status', ['pending_payment', 'payment_submitted'])->count();
-        $completedTrades = Trade::where('status', 'completed')->count();
-        $disputedTrades = Trade::where('status', 'disputed')->count();
+        $totalCommission = (float) Trade::where('status', 'completed')
+            ->whereNotIn('seller_id', $superAccountIds)
+            ->sum('commission_amount');
+
+        $activeTrades = Trade::whereIn('status', ['pending_payment', 'payment_submitted'])
+            ->whereNotIn('seller_id', $superAccountIds)
+            ->count();
+            
+        $completedTrades = Trade::where('status', 'completed')
+            ->whereNotIn('seller_id', $superAccountIds)
+            ->count();
+            
+        $disputedTrades = Trade::where('status', 'disputed')
+            ->whereNotIn('seller_id', $superAccountIds)
+            ->count();
 
         return response()->json([
             'users' => [

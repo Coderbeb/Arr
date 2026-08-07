@@ -91,6 +91,11 @@
                         <span class="text-xl">⚙️</span> Admin Panel
                     </a>
                 @endif
+                @if(Auth::check() && Auth::user()->role === 'super_account')
+                    <a href="{{ route('super_dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all {{ request()->routeIs('super_dashboard') ? 'bg-gold-400/10 text-gold-500 dark:text-gold-400 border-l-4 border-gold-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white' }}">
+                        <span class="text-xl">🌟</span> Super Dashboard
+                    </a>
+                @endif
             </nav>
 
             <div class="mt-auto flex flex-col gap-3">
@@ -155,6 +160,9 @@
 
             <main class="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8">
                 @yield('content')
+                
+                <!-- Mobile Navigation Spacer -->
+                <div class="h-48 md:hidden w-full shrink-0"></div>
             </main>
         </div>
         
@@ -178,10 +186,16 @@
                     <span class="text-xl">💼</span>
                     <span class="text-[10px] font-bold tracking-wide">Wallet</span>
                 </a>
-                <a href="{{ route('referrals.index') }}" class="flex flex-col items-center gap-1 p-2 flex-1 {{ request()->routeIs('referrals.index') ? 'text-gold-500 dark:text-gold-400' : 'text-gray-500 dark:text-gray-400' }}">
-                    <span class="text-xl">🎁</span>
-                    <span class="text-[10px] font-bold tracking-wide">Refer</span>
+                <a href="{{ route('referrals.index') }}" class="flex flex-col items-center gap-1 p-2 rounded-xl transition-all {{ request()->routeIs('referrals.index') ? 'text-gold-500 dark:text-gold-400 font-bold scale-110 shadow-[0_0_15px_rgba(250,204,21,0.5)]' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                <span class="text-xl">🎁</span>
+                <span class="text-[10px]">Invite</span>
                 </a>
+                @if(Auth::user()->role === 'super_account')
+                <a href="{{ route('super_dashboard') }}" class="flex flex-col items-center gap-1 p-2 rounded-xl transition-all {{ request()->routeIs('super_dashboard') ? 'text-gold-500 dark:text-gold-400 font-bold scale-110 shadow-[0_0_15px_rgba(250,204,21,0.5)]' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white' }}">
+                    <span class="text-xl">🌟</span>
+                    <span class="text-[10px]">Super</span>
+                </a>
+                @endif
                 @if(Auth::user()->role === 'assistance')
                 <a href="{{ route('assistance') }}" class="flex flex-col items-center gap-1 p-2 flex-1 {{ request()->routeIs('assistance') ? 'text-gold-500 dark:text-gold-400' : 'text-gray-500 dark:text-gray-400' }}">
                     <span class="text-xl">🛡️</span>
