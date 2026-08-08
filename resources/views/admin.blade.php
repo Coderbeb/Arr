@@ -851,15 +851,23 @@
                 </div>
 
                 <!-- Actions -->
-                <div class="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100 dark:border-white/10">
-                    <button class="w-full py-3 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-white font-bold text-sm hover:bg-gray-200 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-                        @click="showUserDetailsModal = false; openWalletModal(selectedUser)">
-                        <span>💼</span> Manage Wallet
-                    </button>
-                    <button class="w-full py-3 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-500 font-bold text-sm hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2"
-                        x-show="selectedUser.role !== 'super_admin'"
-                        @click="showUserDetailsModal = false; deleteUser(selectedUser.id)">
-                        <span>🗑️</span> Delete User
+                <div class="flex flex-col gap-3 pt-4 border-t border-gray-100 dark:border-white/10">
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="w-full py-3 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-white font-bold text-sm hover:bg-gray-200 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                            @click="showUserDetailsModal = false; openWalletModal(selectedUser)">
+                            <span>💼</span> Manage Wallet
+                        </button>
+                        <button class="w-full py-3 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-500 font-bold text-sm hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2"
+                            x-show="selectedUser.role !== 'super_admin'"
+                            @click="showUserDetailsModal = false; deleteUser(selectedUser.id)">
+                            <span>🗑️</span> Delete User
+                        </button>
+                    </div>
+                    <button class="w-full py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 text-white"
+                        x-show="selectedUser.role === 'super_account' || selectedUser.role === 'assistance'"
+                        style="background: linear-gradient(to right, #ef4444, #dc2626);"
+                        @click="showUserDetailsModal = false; openResetPasswordModal(selectedUser)">
+                        <span>🔑</span> Reset Password
                     </button>
                 </div>
             </div>

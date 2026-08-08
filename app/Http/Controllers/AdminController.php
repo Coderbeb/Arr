@@ -347,12 +347,92 @@ class AdminController extends Controller
             DB::transaction(function () use ($user_id, $admin) {
                 $user = User::findOrFail($user_id);
 
-                \App\Models\Order::where('seller_id', $user_id)->delete();
-                \App\Models\Trade::where('buyer_id', $user_id)->orWhere('seller_id', $user_id)->delete();
-                \App\Models\Dispute::where('raised_by', $user_id)->delete();
-                \App\Models\WalletTransaction::where('user_id', $user_id)->delete();
+                // 1. Collect all trade IDs involving this user (as buyer OR seller)
+                $tradeIds = \App\Models\Trade::where('buyer_id', $user_id)
+                    ->orWhere('seller_id', $user_id)
+                    ->pluck('id');
+
+                // 2. Collect all order IDs for this user
+                $orderIds = \App\Models\Order::where('seller_id', $user_id)->pluck('id');
+
+                // 3. Collect all dispute IDs linked to the user's trades or raised by the user
+                $disputeIds = collect();
+                if ($tradeIds->isNotEmpty()) {
+                    $disputeIds = $disputeIds->merge(
+                        \App\Models\Dispute::whereIn('trade_id', $tradeIds)->pluck('id')
+                    );
+                }
+                $disputeIds = $disputeIds->merge(
+                    \App\Models\Dispute::where('raised_by', $user_id)->pluck('id')
+                )->unique();
+
+                // --- Delete from leaf tables first, working inward ---
+
+                // 4a. proof_files (references trades, disputes, users)
+                if ($tradeIds->isNotEmpty()) {
+                    DB::table('proof_files')->whereIn('trade_id', $tradeIds)->delete();
+                }
+                if ($disputeIds->isNotEmpty()) {
+                    DB::table('proof_files')->whereIn('dispute_id', $disputeIds)->delete();
+                }
+                DB::table('proof_files')->where('uploaded_by', $user_id)->delete();
+
+                // 4b. fraud_hashes (references disputes, users)
+                if ($disputeIds->isNotEmpty()) {
+                    DB::table('fraud_hashes')->whereIn('dispute_id', $disputeIds)->delete();
+                }
+                DB::table('fraud_hashes')->where('flagged_by', $user_id)->delete();
+
+                // 5. notifications (references trades, disputes, users)
+                if ($tradeIds->isNotEmpty()) {
+                    \App\Models\Notification::whereIn('trade_id', $tradeIds)->delete();
+                }
                 \App\Models\Notification::where('user_id', $user_id)->delete();
 
+                // 6. wallet_transactions (references trades, users) — nullify trade FK first
+                if ($tradeIds->isNotEmpty()) {
+                    \App\Models\WalletTransaction::whereIn('trade_id', $tradeIds)->update(['trade_id' => null]);
+                }
+                \App\Models\WalletTransaction::where('user_id', $user_id)->delete();
+
+                // 7. utr_registry (references trades, users)
+                if ($tradeIds->isNotEmpty()) {
+                    \App\Models\UtrRegistry::whereIn('trade_id', $tradeIds)->delete();
+                }
+
+                // 8. disputes (references trades, users)
+                if ($disputeIds->isNotEmpty()) {
+                    \App\Models\Dispute::whereIn('id', $disputeIds)->delete();
+                }
+
+                // 9. trades (references orders, users)
+                if ($tradeIds->isNotEmpty()) {
+                    \App\Models\Trade::whereIn('id', $tradeIds)->delete();
+                }
+
+                // 10. orders (references users)
+                if ($orderIds->isNotEmpty()) {
+                    \App\Models\Order::whereIn('id', $orderIds)->delete();
+                }
+
+                // 11. earnings_tracker (references users)
+                DB::table('earnings_tracker')->where('user_id', $user_id)->delete();
+
+                // 12. user_bonuses_claimed (references users)
+                DB::table('user_bonuses_claimed')->where('user_id', $user_id)->delete();
+
+                // 13. referral_claims (references users)
+                if (\Illuminate\Support\Facades\Schema::hasTable('referral_claims')) {
+                    DB::table('referral_claims')->where('user_id', $user_id)->delete();
+                }
+
+                // 14. admin_audit_log (references users) — keep logs but nullify is not possible since admin_id is non-nullable, so delete
+                DB::table('admin_audit_log')->where('admin_id', $user_id)->delete();
+
+                // 15. Nullify referred_by on other users who were referred by this user
+                User::where('referred_by', $user_id)->update(['referred_by' => null]);
+
+                // 16. Finally delete the user
                 $user->delete();
 
                 AdminAuditLog::create([
@@ -455,5 +535,46 @@ class AdminController extends Controller
         });
 
         return response()->json($data);
+    }
+
+    /**
+     * Reset password for super_account or assistance staff (super_admin only)
+     * POST /api/admin/users/{user_id}/reset-password
+     */
+    public function resetStaffPassword(Request $request, string $userId)
+    {
+        $admin = $request->user();
+        if ($admin->role !== 'super_admin') {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $request->validate([
+            'new_password' => 'required|string|min:6',
+        ]);
+
+        $user = User::find($userId);
+        if (!$user) {
+            return response()->json(['error' => 'User not found.'], 404);
+        }
+
+        if (!in_array($user->role, ['super_account', 'assistance'])) {
+            return response()->json(['error' => 'You can only reset passwords for Super Account and Assistance staff.'], 403);
+        }
+
+        $user->password_hash = Hash::make($request->new_password);
+        $user->failed_dob_attempts = 0;
+        $user->dob_lockout_until = null;
+        $user->save();
+
+        AdminAuditLog::create([
+            'id'          => (string) Str::uuid(),
+            'admin_id'    => $admin->id,
+            'action'      => 'reset_staff_password',
+            'target_type' => 'user',
+            'target_id'   => $user->id,
+            'created_at'  => Carbon::now(),
+        ]);
+
+        return response()->json(['message' => "Password for {$user->full_name} has been reset successfully."]);
     }
 }

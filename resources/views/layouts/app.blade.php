@@ -252,7 +252,7 @@
         <div class="flex-1 flex flex-col min-w-0 md:ml-[260px]">
             
             <!-- Mobile Topbar (Highly Compact) -->
-            <header class="md:hidden sticky top-0 z-30 bg-white/95 dark:bg-deep-900/95 backdrop-blur-md border-b border-gray-200 dark:border-white/10 px-4 py-3 flex items-center justify-between">
+            <header class="md:hidden fixed top-0 left-0 w-full z-40 bg-white/95 dark:bg-deep-900/95 backdrop-blur-md border-b border-gray-200 dark:border-white/10 px-4 py-3 flex items-center justify-between">
                 <div class="text-lg font-bold bg-gradient-to-br from-gold-400 to-gold-600 bg-clip-text text-transparent flex items-center gap-1">
                     <span>🪙</span> Arr Wallet
                 </div>
@@ -293,7 +293,7 @@
                 @endauth
             </header>
 
-            <main class="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8">
+            <main class="flex-1 w-full max-w-5xl mx-auto p-4 pt-20 md:p-8 md:pt-8">
                 @yield('content')
                 
                 <!-- Mobile Navigation Spacer -->

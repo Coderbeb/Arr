@@ -106,7 +106,7 @@ class TradeController extends Controller
         $acceptMinutes = $settings ? $settings->trade_accept_minutes : 30;
         $paymentTimer = $settings ? $settings->payment_timer_minutes : 30;
 
-        $order = DB::transaction(function () use ($seller, $amount, $commissionPct, $commissionAmt, $acceptMinutes, $effectiveUpiId, $effectiveUpiApp) {
+        $order = DB::transaction(function () use ($seller, $amount, $buyCommissionPct, $buyCommissionAmt, $acceptMinutes, $effectiveUpiId, $effectiveUpiApp) {
             $sellerUser = User::where('id', $seller->id)->lockForUpdate()->first();
             $this->walletService->lockEscrow($sellerUser, $amount);
 
@@ -138,7 +138,7 @@ class TradeController extends Controller
                     if ($buyer && (!$buyer->buy_ban_until || Carbon::now()->greaterThan($buyer->buy_ban_until))) {
                         
                         // Match found! Create Trade
-                        $matchedTrade = DB::transaction(function () use ($order, $buyer, $amount, $commissionAmt, $paymentTimer) {
+                        $matchedTrade = DB::transaction(function () use ($order, $buyer, $amount, $buyCommissionAmt, $paymentTimer) {
                             $lockedOrder = Order::where('id', $order->id)->lockForUpdate()->first();
                             $lockedOrder->update(['status' => 'matched', 'matched_at' => Carbon::now()]);
 
@@ -148,7 +148,7 @@ class TradeController extends Controller
                                 'buyer_id' => $buyer->id,
                                 'seller_id' => $lockedOrder->seller_id,
                                 'amount' => $amount,
-                                'commission_amount' => $commissionAmt,
+                                'commission_amount' => $buyCommissionAmt,
                                 'status' => 'pending_payment',
                                 'payment_deadline' => Carbon::now()->addMinutes($paymentTimer),
                             ]);

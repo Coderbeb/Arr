@@ -61,14 +61,17 @@
     </div>
 
     @if(isset($settings) && $settings->sell_commission_percent > 0)
-    <div class="bg-gradient-to-r from-blue-500/10 to-indigo-500/5 border border-blue-500/20 rounded-2xl p-4 md:p-6 mb-8 flex flex-col md:flex-row items-center justify-between shadow-sm relative overflow-hidden group hover:scale-[1.01] transition-transform">
-        <div class="absolute -right-20 -top-20 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all"></div>
-        <div class="text-center md:text-left mb-4 md:mb-0 z-10">
-            <p class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Guaranteed Rewards</p>
-            <h3 class="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">Earn <span class="text-blue-500">{{ (float)$settings->sell_commission_percent }}% Commission</span></h3>
-            <p class="text-sm text-gray-600 dark:text-gray-300 mt-2 font-medium">Your commission is instantly credited to your wallet the moment you approve the buyer's payment.</p>
+    <div class="bg-white dark:bg-deep-800 rounded-2xl p-4 md:p-5 mb-6 md:mb-8 flex items-center justify-between shadow-sm dark:shadow-none border border-gray-200 dark:border-white/10 relative overflow-hidden group">
+        <div class="absolute -right-10 -top-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl transition-all"></div>
+        <div class="text-left z-10 w-full flex items-center gap-4">
+            <div class="hidden sm:flex text-4xl">🚀</div>
+            <div class="flex-1">
+                <p class="text-[10px] md:text-xs font-bold text-blue-500 dark:text-blue-400 uppercase tracking-widest mb-0.5">Guaranteed Rewards</p>
+                <h3 class="text-lg md:text-xl font-extrabold text-gray-900 dark:text-white">Earn <span style="color: #3b82f6;">{{ (float)$settings->sell_commission_percent }}% Commission</span></h3>
+                <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium leading-tight">Credited to your wallet the moment you approve the buyer's payment.</p>
+            </div>
+            <div class="text-3xl sm:hidden animate-pulse">🚀</div>
         </div>
-        <div class="text-5xl md:text-6xl animate-pulse z-10">🚀</div>
     </div>
     @endif
 
@@ -99,12 +102,13 @@
             <!-- Amount Selection -->
             <div class="mb-6">
                 <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Select Amount</label>
-                <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                <div class="flex flex-wrap gap-2">
                     <template x-for="amt in tradeAmounts" :key="amt.id">
-                        <div class="py-2.5 px-1 text-center rounded-xl font-bold cursor-pointer transition-all border-2 text-sm md:text-base"
-                             :class="selectedAmountId === amt.id ? 'bg-gold-400/10 border-gold-400 text-gold-600 dark:text-gold-400' : 'bg-gray-50 dark:bg-white/5 border-transparent text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/20'"
-                             @click="selectedAmountId = amt.id"
-                             x-text="'₹' + amt.amount"></div>
+                        <label class="flex-1 min-w-[30%] py-3 px-2 text-center rounded-xl font-bold cursor-pointer transition-all border-2 text-sm md:text-base select-none"
+                             :class="selectedAmountId === amt.id ? 'bg-gold-400/10 border-gold-400 text-gold-600 dark:text-gold-400 shadow-sm scale-[1.02]' : 'bg-gray-50 dark:bg-white/5 border-transparent text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/20'">
+                            <input type="radio" style="display: none;" :value="amt.id" x-model="selectedAmountId">
+                            <span x-text="'₹' + amt.amount"></span>
+                        </label>
                     </template>
                 </div>
             </div>
@@ -126,7 +130,7 @@
                     </select>
                 </div>
 
-                <button class="w-full py-3.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-transform active:scale-95 flex justify-center items-center gap-2 text-sm md:text-base" @click="handleSellOrder" :disabled="loading">
+                <button class="w-full py-3.5 text-white rounded-xl font-bold transition-transform active:scale-95 flex justify-center items-center gap-2 text-sm md:text-base hover:opacity-90" style="background: linear-gradient(to right, #3b82f6, #2563eb); box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);" @click="handleSellOrder" :disabled="loading">
                     <span x-show="!loading">Sell Coins</span>
                     <span x-show="loading" class="flex items-center gap-2">
                         <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>

@@ -91,6 +91,9 @@
                         </button>
                     </div>
 
+                    <div class="flex justify-end -mt-1">
+                        <a href="/forgot-password" class="text-sm font-semibold text-red-500 dark:text-red-400 hover:underline">Forgot Password?</a>
+                    </div>
                     <button type="submit" class="w-full bg-gold-500 hover:bg-gold-600 text-white font-bold text-base sm:text-lg py-3 sm:py-4 px-6 rounded-xl shadow-lg shadow-gold-500/30 hover:shadow-gold-500/50 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none mt-2" :disabled="loading">
                         <span x-show="!loading">Sign In to Dashboard</span>
                         <span x-show="loading" class="flex items-center justify-center gap-2">

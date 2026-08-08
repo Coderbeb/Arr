@@ -102,6 +102,70 @@ class AuthController extends Controller
     }
 
     /**
+     * Reset password via date of birth verification (for normal users only)
+     */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'mobile_number' => 'required|string',
+            'date_of_birth' => 'required|date',
+            'new_password'  => 'required|string|min:6',
+        ]);
+
+        $user = User::where('mobile_number', $request->mobile_number)->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'No account found with this mobile number.'], 404);
+        }
+
+        // Block staff and admin roles from self-reset
+        if (in_array($user->role, ['super_account', 'assistance', 'super_admin'])) {
+            return response()->json(['error' => 'Staff accounts cannot self-reset. Contact the Super Admin to reset your password.'], 403);
+        }
+
+        // Check lockout
+        if ($user->dob_lockout_until && Carbon::now()->lt($user->dob_lockout_until)) {
+            $minutesLeft = Carbon::now()->diffInMinutes($user->dob_lockout_until, false);
+            return response()->json([
+                'error' => "Too many failed attempts. Try again in {$minutesLeft} minute(s).",
+                'locked_until' => $user->dob_lockout_until->toISOString(),
+            ], 429);
+        }
+
+        // Verify DOB
+        $storedDob = Carbon::parse($user->date_of_birth)->format('Y-m-d');
+        $inputDob  = Carbon::parse($request->date_of_birth)->format('Y-m-d');
+
+        if ($storedDob !== $inputDob) {
+            $attempts = ($user->failed_dob_attempts ?? 0) + 1;
+            $user->failed_dob_attempts = $attempts;
+
+            if ($attempts >= 5) {
+                $user->dob_lockout_until = Carbon::now()->addMinutes(30);
+                $user->save();
+                return response()->json([
+                    'error' => 'Too many failed attempts. Your account is locked for 30 minutes.',
+                    'locked_until' => $user->dob_lockout_until->toISOString(),
+                ], 429);
+            }
+
+            $user->save();
+            $remaining = 5 - $attempts;
+            return response()->json([
+                'error' => "Date of birth does not match. {$remaining} attempt(s) remaining.",
+            ], 401);
+        }
+
+        // DOB matched — reset password
+        $user->password_hash = Hash::make($request->new_password);
+        $user->failed_dob_attempts = 0;
+        $user->dob_lockout_until = null;
+        $user->save();
+
+        return response()->json(['message' => 'Password reset successfully! You can now login with your new password.']);
+    }
+
+    /**
      * Fetch current user profile
      */
     public function me(Request $request)

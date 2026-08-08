@@ -35,6 +35,13 @@
         } finally {
             this.loading = false;
         }
+    },
+
+    isCredit(tx) {
+        const creditTypes = ['trade_received', 'commission', 'bonus', 'admin_credit', 'super_mint', 'escrow_refund'];
+        if (creditTypes.includes(tx.type)) return true;
+        if (tx.type === 'escrow_release' && parseFloat(tx.balance_after) > parseFloat(tx.balance_before)) return true;
+        return false;
     }
 }">
     <!-- Header -->
@@ -116,9 +123,12 @@
         </template>
 
         <template x-if="!loading && transactions.length === 0">
-            <div class="text-center p-8 md:py-12">
-                <div class="text-3xl mb-2 opacity-50">📋</div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">No transactions recorded yet.</div>
+            <div class="text-center py-12 px-4">
+                <div class="w-24 h-24 mx-auto mb-4 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center">
+                    <span class="text-4xl opacity-50">📭</span>
+                </div>
+                <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-1">No Transactions Yet</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">When you complete trades or receive commissions, they will appear here.</p>
             </div>
         </template>
 
@@ -128,18 +138,18 @@
                     <div class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                         <div class="flex items-center gap-3 md:gap-4 overflow-hidden">
                             <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                                 :class="(tx.type.includes('credit') || tx.type.includes('release') || tx.type === 'bonus') ? 'bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400'">
-                                <span class="text-lg leading-none" x-text="(tx.type.includes('credit') || tx.type.includes('release') || tx.type === 'bonus') ? '↓' : '↑'"></span>
+                                 :class="isCredit(tx) ? 'bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400'">
+                                <span class="text-lg leading-none" x-text="isCredit(tx) ? '↓' : '↑'"></span>
                             </div>
                             <div class="min-w-0">
                                 <div class="font-bold text-sm text-gray-900 dark:text-white truncate" x-text="tx.description_en"></div>
-                                <div class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mt-0.5" x-text="new Date(tx.created_at).toLocaleString()"></div>
+                                <div class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mt-0.5" x-text="new Date(tx.created_at).toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })"></div>
                             </div>
                         </div>
                         <div class="text-right shrink-0 pl-2">
                             <div class="font-bold text-sm md:text-base" 
-                                 :class="(tx.type.includes('credit') || tx.type.includes('release') || tx.type === 'bonus') ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'">
-                                <span x-text="(tx.type.includes('credit') || tx.type.includes('release') || tx.type === 'bonus') ? '+' : '-'"></span>₹<span x-text="tx.amount"></span>
+                                 :class="isCredit(tx) ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'">
+                                <span x-text="isCredit(tx) ? '+' : '-'"></span>₹<span x-text="tx.amount"></span>
                             </div>
                         </div>
                     </div>

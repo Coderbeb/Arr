@@ -301,6 +301,9 @@
                 showSuperAccountModal: false,
                 superAccountForm: { full_name: '', mobile_number: '', password: '' },
 
+                showResetPasswordModal: false,
+                resetPasswordForm: { user_id: '', full_name: '', new_password: '' },
+
                 toggleTheme() {
                     this.isDark = !this.isDark;
                     if (this.isDark) {
@@ -745,6 +748,43 @@
                     } finally {
                         this.loading = false;
                     }
+                },
+
+                openResetPasswordModal(user) {
+                    this.resetPasswordForm = { user_id: user.id, full_name: user.full_name, new_password: '' };
+                    this.showResetPasswordModal = true;
+                },
+
+                async resetStaffPassword() {
+                    this.message = '';
+                    this.errorMsg = '';
+                    this.loading = true;
+                    try {
+                        const res = await fetch(`/api/admin/users/${this.resetPasswordForm.user_id}/reset-password`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({ new_password: this.resetPasswordForm.new_password })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) {
+                            let msg = data.error || data.message || 'Failed to reset password';
+                            if (data.errors) msg = Object.values(data.errors).flat().join(', ');
+                            this.errorMsg = msg;
+                        } else {
+                            this.message = data.message || 'Password reset successfully!';
+                            this.showResetPasswordModal = false;
+                            this.resetPasswordForm = { user_id: '', full_name: '', new_password: '' };
+                            await this.loadAuditLogs(true);
+                        }
+                    } catch (e) {
+                        this.errorMsg = 'Network error.';
+                    } finally {
+                        this.loading = false;
+                        setTimeout(() => this.message = this.errorMsg = '', 4000);
+                    }
                 }
             }
         }
@@ -771,6 +811,34 @@
                     <button type="submit" class="w-full btn-primary px-4 py-3 rounded-xl font-bold text-lg mt-4 shadow-lg shadow-gold-500/20" :disabled="loading">
                         <span x-show="!loading">Save Profile</span>
                         <span x-show="loading" class="animate-pulse">Saving...</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Reset Password Modal -->
+        <div x-show="showResetPasswordModal" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center" @keydown.escape.window="showResetPasswordModal = false">
+            <div x-show="showResetPasswordModal" class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" @click="showResetPasswordModal = false" x-transition.opacity></div>
+            <div x-show="showResetPasswordModal" class="relative bg-white dark:bg-deep-800 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10 m-4 transition-all" x-transition.scale.origin.bottom>
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">🔑 Reset Password</h3>
+                    <button @click="showResetPasswordModal = false" class="text-gray-400 hover:text-gray-900 dark:hover:text-white text-2xl leading-none">&times;</button>
+                </div>
+                
+                <div class="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 p-3 rounded-xl mb-5 text-amber-700 dark:text-amber-400 text-sm font-medium flex items-center gap-2">
+                    <span class="text-lg">⚠️</span>
+                    <span>Resetting password for <strong x-text="resetPasswordForm.full_name"></strong></span>
+                </div>
+
+                <form @submit.prevent="resetStaffPassword" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">New Password</label>
+                        <input type="password" x-model="resetPasswordForm.new_password" class="w-full bg-gray-50 dark:bg-deep-900 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500/50 outline-none" placeholder="Enter new password (min 6 chars)" required minlength="6">
+                    </div>
+                    
+                    <button type="submit" class="w-full text-white px-4 py-3 rounded-xl font-bold text-lg mt-4 shadow-lg transition-all active:scale-95 disabled:opacity-70" style="background: linear-gradient(to right, #ef4444, #dc2626); box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.2);" :disabled="loading">
+                        <span x-show="!loading">Reset Password</span>
+                        <span x-show="loading" class="animate-pulse">Resetting...</span>
                     </button>
                 </form>
             </div>

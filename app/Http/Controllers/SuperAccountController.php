@@ -51,4 +51,35 @@ class SuperAccountController extends Controller
             'new_balance' => $user->fresh()->wallet_balance
         ]);
     }
+
+    /**
+     * GET /api/super-account/analytics
+     */
+    public function getAnalytics(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'super_account') {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $totalMinted = WalletTransaction::where('user_id', $user->id)
+            ->where('type', 'super_mint')
+            ->sum('amount');
+
+        $totalSold = \App\Models\Trade::where('seller_id', $user->id)
+            ->where('status', 'completed')
+            ->sum('amount');
+
+        $transactions = WalletTransaction::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'total_minted' => (float) $totalMinted,
+            'total_sold' => (float) $totalSold,
+            'transactions' => $transactions
+        ]);
+    }
 }

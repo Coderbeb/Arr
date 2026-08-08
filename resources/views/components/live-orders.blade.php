@@ -37,11 +37,12 @@
         <div class="bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5 rounded-2xl p-8 md:p-12 flex flex-col items-center justify-center text-center">
             <div class="text-4xl md:text-6xl mb-3 opacity-50">📭</div>
             <h4 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-1">No active activity</h4>
-            <p class="text-sm md:text-base text-gray-500 dark:text-gray-400 mb-5">You don't have any pending requests.</p>
+            @if(Auth::user()->role !== 'super_account')
             <div class="flex gap-4 mt-4">
                 <a href="{{ route('buy') }}" class="btn-primary py-2 px-6 rounded-xl text-sm md:text-base">Buy Now</a>
                 <a href="{{ route('sell') }}" class="btn-primary py-2 px-6 rounded-xl text-sm md:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-red-500/30 border-none">Sell Now</a>
             </div>
+            @endif
         </div>
     </template>
 

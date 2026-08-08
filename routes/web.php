@@ -14,6 +14,10 @@ Route::get('/register', function () {
     return view('auth.register');
 })->name('register');
 
+Route::get('/forgot-password', function () {
+    return view('auth.forgot-password');
+})->name('forgot-password');
+
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', function () {
         if (Auth::user()->role === 'super_admin') {
@@ -67,6 +71,7 @@ Route::prefix('api')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
         Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
+        Route::post('/reset-password', [\App\Http\Controllers\AuthController::class, 'resetPassword']);
 
         Route::middleware('auth')->group(function () {
             Route::get('/me', [\App\Http\Controllers\AuthController::class, 'me']);
@@ -122,6 +127,7 @@ Route::prefix('api')->group(function () {
         Route::post('/settings', [\App\Http\Controllers\AdminController::class, 'updateSettings']);
         Route::post('/profile', [\App\Http\Controllers\AdminController::class, 'updateAdminProfile']);
         Route::get('/audit-logs', [\App\Http\Controllers\AdminController::class, 'auditLogs']);
+        Route::post('/users/{user_id}/reset-password', [\App\Http\Controllers\AdminController::class, 'resetStaffPassword']);
     });
 
     Route::prefix('referrals')->middleware('auth')->group(function () {
@@ -131,5 +137,6 @@ Route::prefix('api')->group(function () {
 
     Route::prefix('super-account')->middleware('auth')->group(function () {
         Route::post('/generate-coins', [\App\Http\Controllers\SuperAccountController::class, 'generateCoins']);
+        Route::get('/analytics', [\App\Http\Controllers\SuperAccountController::class, 'getAnalytics']);
     });
 });
