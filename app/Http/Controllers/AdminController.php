@@ -9,6 +9,7 @@ use App\Models\WalletTransaction;
 use App\Models\Trade;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -25,7 +26,21 @@ class AdminController extends Controller
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
-        $users = User::orderBy('created_at', 'desc')->paginate(50);
+        $query = User::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                  ->orWhere('mobile_number', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
+
+        $users = $query->orderBy('created_at', 'desc')->paginate(50);
         return response()->json($users);
     }
 
@@ -71,14 +86,18 @@ class AdminController extends Controller
     public function updateSettings(Request $request)
     {
         $request->validate([
-            'registration_open'     => 'required|boolean',
-            'commission_percent'    => 'required|numeric|min:0|max:50',
-            'max_daily_earning'     => 'required|numeric|min:0',
-            'max_weekly_earning'    => 'required|numeric|min:0',
-            'trade_accept_minutes'  => 'required|integer|min:1',
-            'payment_timer_minutes' => 'required|integer|min:1',
-            'dispute_proof_minutes' => 'required|integer|min:1',
-            'global_announcement'   => 'nullable|string|max:255',
+            'registration_open'       => 'required|boolean',
+            'buy_commission_percent'  => 'required|numeric|min:0|max:50',
+            'sell_commission_percent' => 'required|numeric|min:0|max:50',
+            'max_daily_earning'       => 'required|numeric|min:0',
+            'max_weekly_earning'      => 'required|numeric|min:0',
+            'trade_accept_minutes'    => 'required|integer|min:1',
+            'payment_timer_minutes'   => 'required|integer|min:1',
+            'dispute_proof_minutes'   => 'required|integer|min:1',
+            'trade_suspended'         => 'required|boolean',
+            'trade_suspended_message' => 'nullable|string|max:255',
+            'allowed_trade_amounts'   => 'nullable|string|max:1000',
+            'global_announcement'     => 'nullable|string|max:255',
         ]);
 
         $admin = $request->user();
@@ -98,6 +117,24 @@ class AdminController extends Controller
                 ['id' => (string) Str::uuid(), 'updated_by' => $admin->id]
             ));
         }
+        
+        // Sync Trade Amounts if provided
+        if ($request->has('allowed_trade_amounts')) {
+            $amountString = $request->input('allowed_trade_amounts');
+            \App\Models\TradeAmount::query()->update(['is_active' => false]);
+            if (!empty($amountString)) {
+                $amounts = array_map('trim', explode(',', $amountString));
+                $sort = 1;
+                foreach ($amounts as $amt) {
+                    if (is_numeric($amt) && $amt > 0) {
+                        \App\Models\TradeAmount::updateOrCreate(
+                            ['amount' => (float) $amt],
+                            ['is_active' => true, 'sort_order' => $sort++]
+                        );
+                    }
+                }
+            }
+        }
 
         AdminAuditLog::create([
             'id'          => (string) Str::uuid(),
@@ -110,6 +147,39 @@ class AdminController extends Controller
         ]);
 
         return response()->json(['message' => 'Settings updated successfully', 'settings' => $settings]);
+    }
+
+    /**
+     * POST /api/admin/profile
+     */
+    public function updateAdminProfile(Request $request)
+    {
+        $admin = $request->user();
+        
+        $request->validate([
+            'mobile_number' => 'required|string|max:15|unique:users,mobile_number,' . $admin->id,
+            'password' => 'nullable|string|min:6',
+        ]);
+
+        $admin->mobile_number = $request->mobile_number;
+        
+        if ($request->filled('password')) {
+            $admin->password = Hash::make($request->password);
+        }
+        
+        $admin->save();
+
+        AdminAuditLog::create([
+            'id'          => (string) Str::uuid(),
+            'admin_id'    => $admin->id,
+            'action'      => 'update_admin_profile',
+            'target_type' => 'user',
+            'target_id'   => $admin->id,
+            'metadata'    => ['mobile_number' => $request->mobile_number, 'password_changed' => $request->filled('password')],
+            'created_at'  => Carbon::now(),
+        ]);
+
+        return response()->json(['message' => 'Profile updated successfully', 'user' => $admin]);
     }
 
     /**
@@ -273,30 +343,38 @@ class AdminController extends Controller
             return response()->json(['error' => 'Cannot delete yourself'], 400);
         }
 
-        $user = User::findOrFail($user_id);
+        try {
+            DB::transaction(function () use ($user_id, $admin) {
+                $user = User::findOrFail($user_id);
 
-        \App\Models\Order::where('seller_id', $user_id)->delete();
-        \App\Models\Trade::where('buyer_id', $user_id)->orWhere('seller_id', $user_id)->delete();
-        \App\Models\Dispute::where('raised_by', $user_id)->delete();
-        \App\Models\WalletTransaction::where('user_id', $user_id)->delete();
-        \App\Models\Notification::where('user_id', $user_id)->delete();
+                \App\Models\Order::where('seller_id', $user_id)->delete();
+                \App\Models\Trade::where('buyer_id', $user_id)->orWhere('seller_id', $user_id)->delete();
+                \App\Models\Dispute::where('raised_by', $user_id)->delete();
+                \App\Models\WalletTransaction::where('user_id', $user_id)->delete();
+                \App\Models\Notification::where('user_id', $user_id)->delete();
 
-        $user->delete();
+                $user->delete();
 
-        AdminAuditLog::create([
-            'id'          => (string) Str::uuid(),
-            'admin_id'    => $admin->id,
-            'action'      => 'delete_user',
-            'target_type' => 'user',
-            'target_id'   => $user_id,
-            'created_at'  => Carbon::now(),
-        ]);
+                AdminAuditLog::create([
+                    'id'          => (string) Str::uuid(),
+                    'admin_id'    => $admin->id,
+                    'action'      => 'delete_user',
+                    'target_type' => 'user',
+                    'target_id'   => $user_id,
+                    'created_at'  => Carbon::now(),
+                ]);
+            });
 
-        return response()->json(['message' => 'User deleted successfully']);
+            return response()->json(['message' => 'User deleted successfully']);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to delete user $user_id: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete user due to constraints. ' . $e->getMessage()], 500);
+        }
     }
 
     /**
      * GET /api/admin/analytics
+     * Optimized: 2 aggregate queries + 30s server cache + "today" metrics
      */
     public function analytics(Request $request)
     {
@@ -305,49 +383,77 @@ class AdminController extends Controller
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
-        $totalUsers = User::where('role', '!=', 'super_account')->count();
-        $activeUsers = User::where('status', 'active')->where('role', '!=', 'super_account')->count();
-        $suspendedUsers = User::where('status', 'suspended')->where('role', '!=', 'super_account')->count();
-        $bannedUsers = User::where('status', 'banned')->where('role', '!=', 'super_account')->count();
+        $data = Cache::remember('admin_analytics', 30, function () {
+            $today = Carbon::today();
 
-        $totalLiquidity = (float) User::where('role', '!=', 'super_account')->sum('escrow_balance');
-        $totalWalletBalance = (float) User::where('role', '!=', 'super_account')->sum('wallet_balance');
-        
-        $superAccountIds = User::where('role', 'super_account')->pluck('id')->toArray();
+            // --- Single aggregate query for ALL user stats ---
+            $superAccountIds = User::where('role', 'super_account')->pluck('id')->toArray();
 
-        $totalCommission = (float) Trade::where('status', 'completed')
-            ->whereNotIn('seller_id', $superAccountIds)
-            ->sum('commission_amount');
+            $userStats = User::where('role', '!=', 'super_account')
+                ->selectRaw("
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+                    SUM(CASE WHEN status = 'suspended' THEN 1 ELSE 0 END) as suspended,
+                    SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END) as banned,
+                    COALESCE(SUM(escrow_balance), 0) as total_escrow,
+                    COALESCE(SUM(wallet_balance), 0) as total_wallet
+                ")
+                ->first();
 
-        $activeTrades = Trade::whereIn('status', ['pending_payment', 'payment_submitted'])
-            ->whereNotIn('seller_id', $superAccountIds)
-            ->count();
-            
-        $completedTrades = Trade::where('status', 'completed')
-            ->whereNotIn('seller_id', $superAccountIds)
-            ->count();
-            
-        $disputedTrades = Trade::where('status', 'disputed')
-            ->whereNotIn('seller_id', $superAccountIds)
-            ->count();
+            $newUsersToday = User::where('role', '!=', 'super_account')
+                ->whereDate('created_at', $today)
+                ->count();
 
-        return response()->json([
-            'users' => [
-                'total' => $totalUsers,
-                'active' => $activeUsers,
-                'suspended' => $suspendedUsers,
-                'banned' => $bannedUsers,
-            ],
-            'financials' => [
-                'total_commission' => $totalCommission,
-                'total_liquidity' => $totalLiquidity,
-                'total_wallet_balance' => $totalWalletBalance,
-            ],
-            'trades' => [
-                'active' => $activeTrades,
-                'completed' => $completedTrades,
-                'disputed' => $disputedTrades,
-            ]
-        ]);
+            // --- Single aggregate query for ALL trade stats ---
+            $tradeQuery = Trade::query();
+            if (!empty($superAccountIds)) {
+                $tradeQuery->whereNotIn('seller_id', $superAccountIds);
+            }
+
+            $tradeStats = (clone $tradeQuery)
+                ->selectRaw("
+                    SUM(CASE WHEN status IN ('pending_payment','payment_submitted') THEN 1 ELSE 0 END) as active,
+                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                    SUM(CASE WHEN status = 'disputed' THEN 1 ELSE 0 END) as disputed,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN commission_amount ELSE 0 END), 0) as total_commission
+                ")
+                ->first();
+
+            // --- Today's trade metrics ---
+            $todayTradeStats = (clone $tradeQuery)
+                ->whereDate('completed_at', $today)
+                ->where('status', 'completed')
+                ->selectRaw("
+                    COUNT(*) as trades_today,
+                    COALESCE(SUM(commission_amount), 0) as commission_today
+                ")
+                ->first();
+
+            return [
+                'users' => [
+                    'total'     => (int) ($userStats->total ?? 0),
+                    'active'    => (int) ($userStats->active ?? 0),
+                    'suspended' => (int) ($userStats->suspended ?? 0),
+                    'banned'    => (int) ($userStats->banned ?? 0),
+                ],
+                'financials' => [
+                    'total_commission'      => (float) ($tradeStats->total_commission ?? 0),
+                    'total_liquidity'       => (float) ($userStats->total_escrow ?? 0),
+                    'total_wallet_balance'  => (float) ($userStats->total_wallet ?? 0),
+                ],
+                'trades' => [
+                    'active'    => (int) ($tradeStats->active ?? 0),
+                    'completed' => (int) ($tradeStats->completed ?? 0),
+                    'disputed'  => (int) ($tradeStats->disputed ?? 0),
+                ],
+                'today' => [
+                    'commission'  => (float) ($todayTradeStats->commission_today ?? 0),
+                    'trades'      => (int) ($todayTradeStats->trades_today ?? 0),
+                    'new_users'   => $newUsersToday,
+                ],
+            ];
+        });
+
+        return response()->json($data);
     }
 }

@@ -26,6 +26,35 @@
         </span>
     </div>
 
+    <!-- Dynamic Commission Branding Banners -->
+    @if(isset($settings) && ($settings->buy_commission_percent > 0 || $settings->sell_commission_percent > 0))
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        @if($settings->buy_commission_percent > 0)
+        <div class="bg-gradient-to-r from-green-500/10 to-emerald-500/5 border border-green-500/20 rounded-2xl p-4 flex items-center justify-between shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-transform">
+            <div class="absolute -right-10 -top-10 w-32 h-32 bg-green-500/10 rounded-full blur-2xl group-hover:bg-green-500/20 transition-all"></div>
+            <div>
+                <p class="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">Buy & Earn</p>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Get {{ (float)$settings->buy_commission_percent }}% Commission</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Instantly added to your wallet on every successful buy.</p>
+            </div>
+            <div class="text-4xl">💸</div>
+        </div>
+        @endif
+        
+        @if($settings->sell_commission_percent > 0)
+        <div class="bg-gradient-to-r from-blue-500/10 to-indigo-500/5 border border-blue-500/20 rounded-2xl p-4 flex items-center justify-between shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-transform">
+            <div class="absolute -right-10 -top-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
+            <div>
+                <p class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Sell & Earn</p>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Get {{ (float)$settings->sell_commission_percent }}% Commission</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Instantly added to your wallet on every successful sell.</p>
+            </div>
+            <div class="text-4xl">🚀</div>
+        </div>
+        @endif
+    </div>
+    @endif
+
     @if(empty(Auth::user()->upi_id))
     <div class="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 p-3 md:p-4 rounded-xl mb-6 md:mb-8 flex items-start sm:items-center gap-2 md:gap-3 text-amber-800 dark:text-amber-400">
         <span class="text-lg md:text-2xl shrink-0">⚠️</span>

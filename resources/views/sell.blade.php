@@ -60,6 +60,18 @@
         <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-1">Fast P2P matching with escrow locking.</p>
     </div>
 
+    @if(isset($settings) && $settings->sell_commission_percent > 0)
+    <div class="bg-gradient-to-r from-blue-500/10 to-indigo-500/5 border border-blue-500/20 rounded-2xl p-4 md:p-6 mb-8 flex flex-col md:flex-row items-center justify-between shadow-sm relative overflow-hidden group hover:scale-[1.01] transition-transform">
+        <div class="absolute -right-20 -top-20 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all"></div>
+        <div class="text-center md:text-left mb-4 md:mb-0 z-10">
+            <p class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Guaranteed Rewards</p>
+            <h3 class="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">Earn <span class="text-blue-500">{{ (float)$settings->sell_commission_percent }}% Commission</span></h3>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mt-2 font-medium">Your commission is instantly credited to your wallet the moment you approve the buyer's payment.</p>
+        </div>
+        <div class="text-5xl md:text-6xl animate-pulse z-10">🚀</div>
+    </div>
+    @endif
+
     <!-- Alerts -->
     <template x-if="message">
         <div class="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 p-3 rounded-lg mb-4 text-green-700 dark:text-green-400 text-sm font-medium" x-text="message"></div>

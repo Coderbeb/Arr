@@ -63,6 +63,12 @@ class TradeController extends Controller
             'upi_app'   => 'nullable|string|in:gpay,phonepe,paytm,bhim',
         ]);
 
+        $settings = PlatformSetting::first();
+        if ($settings && $settings->trade_suspended) {
+            $msg = $settings->trade_suspended_message ?: 'Trading is currently suspended by the administrator.';
+            return response()->json(['error' => $msg], 403);
+        }
+
         $seller = $request->user();
 
         if ($seller->status !== 'active') {
@@ -90,9 +96,13 @@ class TradeController extends Controller
             return response()->json(['error' => 'Insufficient wallet balance'], 400);
         }
 
-        $settings = PlatformSetting::first();
-        $commissionPct = $settings ? (float) $settings->commission_percent : 8.00;
-        $commissionAmt = round(($amount * $commissionPct) / 100, 2);
+        if (!$settings) $settings = PlatformSetting::first();
+        $sellCommissionPct = $settings ? (float) $settings->sell_commission_percent : 8.00;
+        $buyCommissionPct = $settings ? (float) $settings->buy_commission_percent : 8.00;
+        
+        $sellCommissionAmt = round(($amount * $sellCommissionPct) / 100, 2);
+        $buyCommissionAmt = round(($amount * $buyCommissionPct) / 100, 2);
+        
         $acceptMinutes = $settings ? $settings->trade_accept_minutes : 30;
         $paymentTimer = $settings ? $settings->payment_timer_minutes : 30;
 
@@ -107,8 +117,8 @@ class TradeController extends Controller
                 'seller_id'      => $sellerUser->id,
                 'amount'         => $amount,
                 'coin_amount'    => $amount,
-                'commission_pct' => $commissionPct,
-                'commission_amt' => $commissionAmt,
+                'commission_pct' => $buyCommissionPct, // We store buyer commission here for legacy, but WalletService will calculate both
+                'commission_amt' => $buyCommissionAmt,
                 'seller_upi_id'  => $effectiveUpiId,
                 'seller_upi_app' => $effectiveUpiApp,
                 'status'         => 'open',
@@ -185,6 +195,12 @@ class TradeController extends Controller
     public function joinBuyerQueue(Request $request)
     {
         $request->validate(['amount_id' => 'required|exists:trade_amounts,id']);
+
+        $settings = PlatformSetting::first();
+        if ($settings && $settings->trade_suspended) {
+            $msg = $settings->trade_suspended_message ?: 'Trading is currently suspended by the administrator.';
+            return response()->json(['error' => $msg], 403);
+        }
 
         $buyer = $request->user();
 

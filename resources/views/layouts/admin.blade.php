@@ -167,6 +167,9 @@
             </nav>
             
             <div class="p-4 border-t border-gray-100 dark:border-white/5 flex gap-2">
+                <button @click="showProfileModal = true" class="flex-1 flex items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="My Profile">
+                    <span>👤</span>
+                </button>
                 <button @click="toggleTheme()" class="flex-1 flex items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="Toggle Theme">
                     <span x-show="!isDark">🌙</span>
                     <span x-show="isDark">☀️</span>
@@ -188,6 +191,9 @@
                     <div x-show="isSyncing" class="ml-2 w-2 h-2 rounded-full bg-green-500 animate-ping" title="Syncing data..."></div>
                 </div>
                 <div class="flex items-center gap-3">
+                    <button @click="showProfileModal = true" class="p-1.5 text-gray-500 dark:text-gray-400">
+                        <span>👤</span>
+                    </button>
                     <button @click="toggleTheme()" class="p-1.5 text-gray-500 dark:text-gray-400">
                         <span x-show="!isDark">🌙</span>
                         <span x-show="isDark">☀️</span>
@@ -257,15 +263,22 @@
                 activeTab: 'analytics',
                 settings: {
                     registration_open: 1,
-                    commission_percent: 0.00,
+                    buy_commission_percent: 0.00,
+                    sell_commission_percent: 0.00,
                     max_daily_earning: 0,
                     max_weekly_earning: 0,
                     trade_accept_minutes: 15,
                     payment_timer_minutes: 30,
                     dispute_proof_minutes: 120,
+                    trade_suspended: 0,
+                    trade_suspended_message: '',
+                    allowed_trade_amounts: '',
                     global_announcement: ''
                 },
                 users: [],
+                usersPagination: { current_page: 1, last_page: 1, total: 0 },
+                userSearch: '',
+                userRoleFilter: '',
                 auditLogs: [],
                 analytics: null,
                 disputes: [],
@@ -278,6 +291,12 @@
 
                 showWalletModal: false,
                 walletForm: { user_id: '', full_name: '', action: 'add', amount: '', note: '' },
+
+                showProfileModal: false,
+                profileForm: { mobile_number: '{{ auth()->user()->mobile_number ?? "" }}', password: '' },
+
+                showUserDetailsModal: false,
+                selectedUser: null,
                 
                 showSuperAccountModal: false,
                 superAccountForm: { full_name: '', mobile_number: '', password: '' },
@@ -296,60 +315,148 @@
                 syncTimer: null,
                 isSyncing: false,
 
+                _csrfToken: '{{ csrf_token() }}',
+                _headers() {
+                    return {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this._csrfToken,
+                        'Accept': 'application/json',
+                    };
+                },
+
                 async init() {
+                    // Clear Turbo snapshot cache so F5 never shows stale HTML
+                    if (window.Turbo && window.Turbo.cache) {
+                        window.Turbo.cache.clear();
+                    }
+                    // Clear any stale browser sessionStorage cache
+                    if (window.ArrCache) {
+                        window.ArrCache.clearAll();
+                    }
+
                     await this.loadAdminData();
                     
-                    // Watch for tab changes — use cached data for instant feel
+                    // Watch for tab changes — immediately fetch fresh data for the active tab
                     this.$watch('activeTab', async (value) => {
-                        if (value === 'assistance') {
+                        if (value === 'analytics') {
+                            await this.loadAnalytics();
+                        } else if (value === 'users') {
+                            await this.loadUsers();
+                        } else if (value === 'assistance') {
                             await this.loadQueue();
+                        } else if (value === 'logs') {
+                            await this.loadAuditLogs();
+                        } else if (value === 'settings') {
+                            await this.loadSettings();
                         }
-                        // No need to re-fetch everything — cached data is already shown
-                        // The poller will keep things fresh
                     });
 
-                    // Smart visibility-aware polling (pauses when tab is hidden)
+                    // Background poller — keeps data fresh every 10s (pauses when tab hidden)
                     const self = this;
                     ArrPolling.start('admin-sync', async () => {
                         self.isSyncing = true;
-                        if (self.activeTab === 'assistance') {
-                            await self.loadQueue(true);
-                        } else if (self.activeTab !== 'settings') {
-                            await self.loadAdminData(true);
-                        }
+                        try {
+                            if (self.activeTab === 'analytics') {
+                                await self.loadAnalytics(true);
+                            } else if (self.activeTab === 'assistance') {
+                                await self.loadQueue(true);
+                            }
+                        } catch (e) {}
                         setTimeout(() => self.isSyncing = false, 500);
-                    }, 5000, false);
+                    }, 10000, false);
                 },
 
-                async loadAdminData(silent = false) {
-                    if (!silent) {
-                        this.loading = true;
-                        this.errorMsg = '';
-                        this.message = '';
-                    }
+                // --- Direct fetch helpers (no browser cache) ---
+                async _fetchJson(url) {
+                    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                },
+
+                async loadAdminData() {
+                    this.loading = true;
+                    this.errorMsg = '';
+                    this.message = '';
                     try {
-                        const cacheTtl = silent ? 2000 : 5000;
                         const [settingsData, userData, logData, analyticsData] = await Promise.all([
-                            ArrCache.fetch('/api/admin/settings', cacheTtl),
-                            ArrCache.fetch('/api/admin/users', cacheTtl),
-                            ArrCache.fetch('/api/admin/audit-logs', cacheTtl),
-                            ArrCache.fetch('/api/admin/analytics', cacheTtl)
+                            this._fetchJson('/api/admin/settings'),
+                            this._fetchJson('/api/admin/users'),
+                            this._fetchJson('/api/admin/audit-logs'),
+                            this._fetchJson('/api/admin/analytics'),
                         ]);
                         
-                        if(settingsData && settingsData.id) {
+                        if (settingsData && settingsData.id) {
                             settingsData.registration_open = settingsData.registration_open ? 1 : 0;
+                            settingsData.trade_suspended = settingsData.trade_suspended ? 1 : 0;
                             settingsData.global_announcement = settingsData.global_announcement || '';
-                            // Only update settings if we're not silently polling, to avoid overwriting form inputs
-                            if (!silent) {
-                                this.settings = settingsData;
-                            }
+                            this.settings = settingsData;
                         }
                         
                         this.users = userData.data || userData || [];
                         this.auditLogs = logData;
                         this.analytics = analyticsData;
                     } catch (e) {
-                        if (!silent) this.errorMsg = 'Failed to load admin data.';
+                        this.errorMsg = 'Failed to load admin data.';
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async loadAnalytics(silent = false) {
+                    if (!silent) this.loading = true;
+                    try {
+                        this.analytics = await this._fetchJson('/api/admin/analytics');
+                    } catch (e) {
+                        if (!silent) this.errorMsg = 'Failed to load analytics.';
+                    } finally {
+                        if (!silent) this.loading = false;
+                    }
+                },
+
+                async loadUsers(page = 1, silent = false) {
+                    if (!silent) this.loading = true;
+                    try {
+                        let url = `/api/admin/users?page=${page}`;
+                        if (this.userSearch) url += `&search=${encodeURIComponent(this.userSearch)}`;
+                        if (this.userRoleFilter) url += `&role=${encodeURIComponent(this.userRoleFilter)}`;
+                        
+                        const data = await this._fetchJson(url);
+                        this.users = data.data || [];
+                        this.usersPagination = {
+                            current_page: data.current_page || 1,
+                            last_page: data.last_page || 1,
+                            total: data.total || 0
+                        };
+                    } catch (e) {
+                        if (!silent) this.errorMsg = 'Failed to load users.';
+                    } finally {
+                        if (!silent) this.loading = false;
+                    }
+                },
+
+                async loadAuditLogs(silent = false) {
+                    if (!silent) this.loading = true;
+                    try {
+                        this.auditLogs = await this._fetchJson('/api/admin/audit-logs');
+                    } catch (e) {
+                        if (!silent) this.errorMsg = 'Failed to load audit logs.';
+                    } finally {
+                        if (!silent) this.loading = false;
+                    }
+                },
+
+                async loadSettings(silent = false) {
+                    if (!silent) this.loading = true;
+                    try {
+                        const data = await this._fetchJson('/api/admin/settings');
+                        if (data && data.id) {
+                            data.registration_open = data.registration_open ? 1 : 0;
+                            data.trade_suspended = data.trade_suspended ? 1 : 0;
+                            data.global_announcement = data.global_announcement || '';
+                            this.settings = data;
+                        }
+                    } catch (e) {
+                        if (!silent) this.errorMsg = 'Failed to load settings.';
                     } finally {
                         if (!silent) this.loading = false;
                     }
@@ -358,7 +465,7 @@
                 async loadQueue(silent = false) {
                     if (!silent) this.loading = true;
                     try {
-                        this.disputes = await ArrCache.fetch('/api/assistance/queue', 5000);
+                        this.disputes = await this._fetchJson('/api/assistance/queue');
                     } catch (e) {
                         if (!silent) this.errorMsg = 'Failed to load support queue.';
                     } finally {
@@ -373,6 +480,7 @@
                     try {
                         const payload = { ...this.settings };
                         payload.registration_open = payload.registration_open == 1;
+                        payload.trade_suspended = payload.trade_suspended == 1;
 
                         const res = await fetch('/api/admin/settings', {
                             method: 'POST',
@@ -391,7 +499,7 @@
                         } else {
                             this.message = 'Platform settings updated successfully!';
                             if (data.settings) {
-                                this.settings = { ...data.settings, registration_open: data.settings.registration_open ? 1 : 0, global_announcement: data.settings.global_announcement || '' };
+                                this.settings = { ...data.settings, registration_open: data.settings.registration_open ? 1 : 0, trade_suspended: data.settings.trade_suspended ? 1 : 0, global_announcement: data.settings.global_announcement || '' };
                             }
                         }
                     } catch (e) {
@@ -422,8 +530,7 @@
                             await this.loadAdminData();
                         } else {
                             this.message = 'User status updated successfully!';
-                            const logRes = await fetch('/api/admin/audit-logs');
-                            this.auditLogs = await logRes.json();
+                            await this.loadAuditLogs(true);
                         }
                     } catch (e) {
                         this.errorMsg = 'Network error while updating user.';
@@ -613,9 +720,62 @@
                     if (!dateStr) return 'N/A';
                     const d = new Date(dateStr);
                     return d.toLocaleString();
+                },
+                
+                async saveProfile() {
+                    this.message = '';
+                    this.errorMsg = '';
+                    this.loading = true;
+                    try {
+                        const res = await fetch('/api/admin/profile', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify(this.profileForm)
+                        });
+                        const data = await res.json();
+                        if(!res.ok) throw new Error(data.error || data.message || 'Failed to update profile');
+                        this.message = 'Profile updated successfully!';
+                        setTimeout(() => this.showProfileModal = false, 1500);
+                        this.profileForm.password = '';
+                    } catch(err) {
+                        this.errorMsg = err.message;
+                    } finally {
+                        this.loading = false;
+                    }
                 }
             }
         }
     </script>
+        <!-- Admin Profile Modal -->
+        <div x-show="showProfileModal" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center" @keydown.escape.window="showProfileModal = false">
+            <div x-show="showProfileModal" class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" @click="showProfileModal = false" x-transition.opacity></div>
+            <div x-show="showProfileModal" class="relative bg-white dark:bg-deep-800 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10 m-4 transition-all" x-transition.scale.origin.bottom>
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">My Profile</h3>
+                    <button @click="showProfileModal = false" class="text-gray-400 hover:text-gray-900 dark:hover:text-white text-2xl leading-none">&times;</button>
+                </div>
+                
+                <form @submit.prevent="saveProfile" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Mobile Number</label>
+                        <input type="text" x-model="profileForm.mobile_number" class="w-full bg-gray-50 dark:bg-deep-900 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-gold-500/50 outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">New Password (Optional)</label>
+                        <input type="password" x-model="profileForm.password" class="w-full bg-gray-50 dark:bg-deep-900 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-gold-500/50 outline-none" placeholder="Leave blank to keep current">
+                    </div>
+                    
+                    <button type="submit" class="w-full btn-primary px-4 py-3 rounded-xl font-bold text-lg mt-4 shadow-lg shadow-gold-500/20" :disabled="loading">
+                        <span x-show="!loading">Save Profile</span>
+                        <span x-show="loading" class="animate-pulse">Saving...</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
 </body>
 </html>

@@ -101,10 +101,15 @@ class WalletService
                 'description_hi' => "₹{$tradeAmt} कॉइन ट्रेड के माध्यम से बेचे। एस्क्रो जारी।",
             ]);
 
-            // Calculate capped commission for buyer
             $settings = PlatformSetting::first();
             $maxDaily = $settings ? (float) $settings->max_daily_earning : 500.00;
             $maxWeekly = $settings ? (float) $settings->max_weekly_earning : 2000.00;
+            
+            $buyCommissionPct = $settings ? (float) $settings->buy_commission_percent : 8.00;
+            $sellCommissionPct = $settings ? (float) $settings->sell_commission_percent : 8.00;
+            
+            $buyCommAmt = round(($tradeAmt * $buyCommissionPct) / 100, 2);
+            $sellCommAmt = round(($tradeAmt * $sellCommissionPct) / 100, 2);
 
             $today = Carbon::now()->toDateString();
             $d = Carbon::now();
@@ -112,56 +117,109 @@ class WalletService
             $mondayOffset = $dayOfWeek === 0 ? 6 : $dayOfWeek - 1;
             $weekStart = $d->subDays($mondayOffset)->toDateString();
 
-            $earningsTracker = EarningsTracker::where('user_id', $buyer->id)
+            // Calculate capped commission for buyer
+            $buyerEarningsTracker = EarningsTracker::where('user_id', $buyer->id)
                 ->where('date', $today)
                 ->first();
 
-            $dailyEarned = $earningsTracker ? (float) $earningsTracker->daily_earned : 0.0;
-            $weeklyEarned = $earningsTracker ? (float) $earningsTracker->weekly_earned : 0.0;
+            $buyerDailyEarned = $buyerEarningsTracker ? (float) $buyerEarningsTracker->daily_earned : 0.0;
+            $buyerWeeklyEarned = $buyerEarningsTracker ? (float) $buyerEarningsTracker->weekly_earned : 0.0;
 
-            $dailyRemaining = max(0, $maxDaily - $dailyEarned);
-            $weeklyRemaining = max(0, $maxWeekly - $weeklyEarned);
+            $buyerDailyRemaining = max(0, $maxDaily - $buyerDailyEarned);
+            $buyerWeeklyRemaining = max(0, $maxWeekly - $buyerWeeklyEarned);
 
-            $allowedComm = round(min($commAmt, $dailyRemaining, $weeklyRemaining), 2);
+            $allowedBuyComm = round(min($buyCommAmt, $buyerDailyRemaining, $buyerWeeklyRemaining), 2);
 
             $buyerBalBefore = (float) $buyer->wallet_balance;
-            $buyerReceives = $tradeAmt + $allowedComm;
+            $buyerReceives = $tradeAmt + $allowedBuyComm;
 
             $buyer->wallet_balance += $buyerReceives;
             $buyer->total_trades += 1;
             $buyer->consecutive_cancels = 0;
             $buyer->save();
 
-            $commNote = $allowedComm < $commAmt
-                ? " (commission capped from ₹{$commAmt} to ₹{$allowedComm})"
+            $buyCommNote = $allowedBuyComm < $buyCommAmt
+                ? " (commission capped from ₹{$buyCommAmt} to ₹{$allowedBuyComm})"
                 : "";
 
             WalletTransaction::create([
                 'id' => (string) Str::uuid(),
                 'user_id' => $buyer->id,
                 'trade_id' => $trade->id,
-                'type' => 'credit_commission',
+                'type' => 'trade_received',
                 'amount' => $buyerReceives,
                 'balance_before' => $buyerBalBefore,
                 'balance_after' => $buyer->wallet_balance,
-                'description_en' => "Purchased ₹{$tradeAmt} coins + ₹{$allowedComm} commission.{$commNote}",
-                'description_hi' => "₹{$tradeAmt} कॉइन खरीदे + ₹{$allowedComm} कमीशन।",
+                'description_en' => "Received ₹{$tradeAmt} coins + ₹{$allowedBuyComm} commission{$buyCommNote}.",
+                'description_hi' => "₹{$tradeAmt} कॉइन + ₹{$allowedBuyComm} कमीशन प्राप्त हुआ{$buyCommNote}।",
             ]);
+            
+            // Calculate capped commission for seller
+            $sellerEarningsTracker = EarningsTracker::where('user_id', $seller->id)
+                ->where('date', $today)
+                ->first();
 
-            // Update earnings tracker
-            if ($allowedComm > 0) {
-                if ($earningsTracker) {
-                    $earningsTracker->daily_earned += $allowedComm;
-                    $earningsTracker->weekly_earned += $allowedComm;
-                    $earningsTracker->save();
+            $sellerDailyEarned = $sellerEarningsTracker ? (float) $sellerEarningsTracker->daily_earned : 0.0;
+            $sellerWeeklyEarned = $sellerEarningsTracker ? (float) $sellerEarningsTracker->weekly_earned : 0.0;
+
+            $sellerDailyRemaining = max(0, $maxDaily - $sellerDailyEarned);
+            $sellerWeeklyRemaining = max(0, $maxWeekly - $sellerWeeklyEarned);
+
+            $allowedSellComm = round(min($sellCommAmt, $sellerDailyRemaining, $sellerWeeklyRemaining), 2);
+            
+            if ($allowedSellComm > 0) {
+                $seller->wallet_balance += $allowedSellComm;
+                $seller->save();
+                
+                $sellCommNote = $allowedSellComm < $sellCommAmt
+                    ? " (capped from ₹{$sellCommAmt} to ₹{$allowedSellComm})"
+                    : "";
+                    
+                WalletTransaction::create([
+                    'id' => (string) Str::uuid(),
+                    'user_id' => $seller->id,
+                    'trade_id' => $trade->id,
+                    'type' => 'commission',
+                    'amount' => $allowedSellComm,
+                    'balance_before' => $sellerBalBefore,
+                    'balance_after' => $seller->wallet_balance,
+                    'description_en' => "Earned ₹{$allowedSellComm} seller commission{$sellCommNote}.",
+                    'description_hi' => "₹{$allowedSellComm} विक्रेता कमीशन कमाया{$sellCommNote}।",
+                ]);
+            }
+
+            // Update Buyer Earnings Tracker
+            if ($allowedBuyComm > 0) {
+                if ($buyerEarningsTracker) {
+                    $buyerEarningsTracker->daily_earned += $allowedBuyComm;
+                    $buyerEarningsTracker->weekly_earned += $allowedBuyComm;
+                    $buyerEarningsTracker->save();
                 } else {
                     EarningsTracker::create([
                         'id' => (string) Str::uuid(),
                         'user_id' => $buyer->id,
                         'date' => $today,
-                        'daily_earned' => $allowedComm,
-                        'weekly_earned' => $allowedComm,
                         'week_start' => $weekStart,
+                        'daily_earned' => $allowedBuyComm,
+                        'weekly_earned' => $allowedBuyComm,
+                    ]);
+                }
+            }
+            
+            // Update Seller Earnings Tracker
+            if ($allowedSellComm > 0) {
+                if ($sellerEarningsTracker) {
+                    $sellerEarningsTracker->daily_earned += $allowedSellComm;
+                    $sellerEarningsTracker->weekly_earned += $allowedSellComm;
+                    $sellerEarningsTracker->save();
+                } else {
+                    EarningsTracker::create([
+                        'id' => (string) Str::uuid(),
+                        'user_id' => $seller->id,
+                        'date' => $today,
+                        'week_start' => $weekStart,
+                        'daily_earned' => $allowedSellComm,
+                        'weekly_earned' => $allowedSellComm,
                     ]);
                 }
             }

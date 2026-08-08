@@ -26,6 +26,11 @@ class AuthController extends Controller
             'referral_code' => 'nullable|string|max:10',
         ]);
 
+        $settings = \App\Models\PlatformSetting::first();
+        if ($settings && !$settings->registration_open) {
+            return response()->json(['error' => 'Registrations are currently closed by the administrator.'], 403);
+        }
+
         $referredBy = null;
         if ($request->referral_code) {
             $referrer = User::where('referral_code', strtoupper($request->referral_code))->first();

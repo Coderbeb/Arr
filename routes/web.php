@@ -22,15 +22,18 @@ Route::middleware('auth')->group(function () {
         if (Auth::user()->role === 'super_account') {
             return redirect()->route('super_dashboard');
         }
-        return view('dashboard');
+        $settings = \App\Models\PlatformSetting::first();
+        return view('dashboard', compact('settings'));
     })->name('dashboard');
 
     Route::get('/buy', function () {
-        return view('buy');
+        $settings = \App\Models\PlatformSetting::first();
+        return view('buy', compact('settings'));
     })->name('buy');
 
     Route::get('/sell', function () {
-        return view('sell');
+        $settings = \App\Models\PlatformSetting::first();
+        return view('sell', compact('settings'));
     })->name('sell');
 
     Route::get('/wallet', function () {
@@ -117,6 +120,7 @@ Route::prefix('api')->group(function () {
         Route::delete('/users/{user_id}', [\App\Http\Controllers\AdminController::class, 'deleteUser']);
         Route::get('/settings', [\App\Http\Controllers\AdminController::class, 'getSettings']);
         Route::post('/settings', [\App\Http\Controllers\AdminController::class, 'updateSettings']);
+        Route::post('/profile', [\App\Http\Controllers\AdminController::class, 'updateAdminProfile']);
         Route::get('/audit-logs', [\App\Http\Controllers\AdminController::class, 'auditLogs']);
     });
 
